@@ -1,136 +1,86 @@
-PoolHeating
+# Pool Pump Controller using LilyGO T-Relay ESP32
 
-A DIY smart‑control system that optimises energy cost, water circulation, and comfort for an outdoor swimming‑pool installation.
+This project automates the control of a pool circulation pump and heater to minimize electricity costs while maintaining proper water quality and temperature. It uses a [LilyGO T-Relay ESP32 module](https://github.com/Xinyuan-LilyGO/LilyGo-T-Relay) and connects to an **AquaForte VARIO+ II** (model Vario+ 1100) frequency inverter via digital output.
 
-Project Scope
+## Project Goals
 
-Pool‑pump control (phase 1) — current focusTurn the pump on/off so the daily turnover volume is met during the cheapest electricity hours.
+1. **Automated pool water circulation** based on electricity prices.
+2. **Optimized pump speed control** via RS485 or digital relay control.
+3. **Future expansion** to include heater control and external sensors (e.g., temperature).
+4. **WiFi-connected** and fetches day-ahead electricity spot prices automatically.
 
-Inverter heat‑pump modulation (phase 2)Maintain the target water temperature while shaving peaks and exploiting solar‑PV surplus.
+---
 
-Everything runs on inexpensive ESP32 hardware (LilyGO T‑Relay board) with open‑source firmware that you compile and flash yourself.
+## Hardware
 
-Key Features (phase 1)
+- 🧠 **Microcontroller**: LilyGO T-Relay ESP32
+- 🔌 **Frequency Inverter**: AquaForte VARIO+ II (Vario+ 1100)
+- 🌀 **Pump**: Single-phase pump with permanent split capacitor motor (PSC)
+- 🔌 **Power**: 220-240V AC
 
-Feature
+---
 
-Status
+## Platform
 
-Automatic Wi‑Fi connection (WPA2)
+- **Firmware**: [Espressif IoT Development Framework (ESP-IDF)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/index.html)
+- **Development Environment**: Visual Studio Code with Espressif plugin
+- **Language**: C/C++
 
-✅
+---
 
-24‑hour day‑ahead spot‑price download (Nord Pool / Tibber API)
+## Features
 
-✅
+- ✅ Automatically connects to WiFi
+- 📈 Fetches 24h electricity price data from API
+- ⚙️ Controls pump speed (1400, 2000, 2900 RPM)
+- 🌡️ Can integrate outdoor temperature for smarter logic
+- ⏱️ Supports timed operation modes: Day, Night, Backwash
+- 💾 Remembers settings across reboots
+- 📊 Displays current RPM and power usage
 
-On‑device price cache & fallback to last good data
+---
 
-✅
+## Inverter Configuration
 
-User‑configurable daily turnover volume (m³)
+The AquaForte Vario+ II supports:
+- **Speed ranges**: 1200–2900 RPM
+- **3 user-defined modes**:
+  - Night: 1400 RPM
+  - Day: 2000 RPM
+  - Backwash: 2900 RPM
+- **Self-priming**: 1 min at full speed on startup
+- **Timer support**: Up to 4 scheduled intervals per day
+- **External digital control** via COM + DI2/DI3/DI4
 
-✅
+📘 Refer to the [manual](docs/RELAY_ESP32.md) and the [Vario+ 1100 documentation](rb344-vario-manual.pdf) for wiring and configuration.
 
-Optimised pump schedule that obeys min‑run‑time and spread constraints
+---
 
-✅
+## Installation
 
-Manual‑override & safety time‑outs
+1. Clone the repository.
+2. Set up your development environment with ESP-IDF and Visual Studio Code.
+3. Configure WiFi credentials and API endpoint for electricity prices.
+4. Connect the relay output to the digital input pins of the Vario+ II.
+5. Flash the firmware to your ESP32 T-Relay board.
 
-✅
+---
 
-Prometheus‑compatible metrics endpoint
+## Future Improvements
 
-🔄 (beta)
+- 🔥 Heater control via second relay
+- 📡 OTA updates
+- 🌤️ Integration of weather forecasts
+- 🧠 Smart scheduling based on learning algorithms
 
-Why 24‑hour prices?Nord Pool publishes tomorrow’s hourly prices at ~13:15 CET every day. Grabbing these lets the firmware compute the cheapest runtime pattern before the new day starts.
+---
 
-Hardware Stack
+## Safety & Disclaimer
 
-Layer
+Ensure your pump motor is compatible (PSC motor only). Follow all electrical safety standards. Refer to the inverter manual for wiring and setup instructions:contentReference[oaicite:0]{index=0}.
 
-Part
+---
 
-Notes
+## License
 
-Control MCU
-
-LilyGO T‑Relay v2.0
-
-ESP32 ‑ 8 MB Flash, two 10 A relays
-
-VFD (pump driver)
-
-Aqua Forte VARIO+ II
-
-0‑10 V input used for frequency selection
-
-Circulation Pump
-
-Your 230 V pool pump
-
-Up to 1.5 kW recommended
-
-The T‑Relay’s Relay‑1 is wired to the VARIO+ II’s RUN/STOP terminal. Full wiring diagram is in /docs/wiring.svg.
-
-Firmware Quick Start
-
-# 1. Clone repo & init submodules
-$ git clone https://github.com/youruser/PoolHeating.git
-$ cd PoolHeating && git submodule update --init --recursive
-
-# 2. Set your secrets
-$ cp firmware/config.example.h firmware/config.h
-# ↪ edit WIFI_SSID, WIFI_PASS, PRICE_API_TOKEN, HOME_CURRENCY
-
-# 3. Build and flash (uses PlatformIO)
-$ pio run -e t_relay -t upload
-
-The firmware boots, joins Wi‑Fi, fetches the latest 24‑h price table, then turns the pump on/off according to the computed schedule.
-
-Electricity‑Price Data Sources
-
-By default the firmware queries Nord Pool’s day‑ahead API for your bidding area (SE 1‑4, DK 1‑2, FI, etc.). If you have a Tibber subscription, enable USE_TIBBER and provide your TIBBER_TOKEN to get prices in your contract’s currency including VAT.
-
-Source
-
-Pros
-
-Cons
-
-Nord Pool public API
-
-Free, no auth
-
-VAT‑less, JSON format changes sometimes
-
-Tibber GraphQL
-
-Includes VAT & fees, stable schema
-
-Requires subscription
-
-Scheduling Algorithm
-
-Sort tomorrow’s 24 price points by cost ascending.
-
-Pick the cheapest N hours whose combined flow × time ≥ daily turnover target.
-
-Enforce a minimum rest interval between runs (to avoid short‑cycling).
-
-Re‑sort the chosen hours chronologically and emit an RTC wake‑up list.
-
-This greedy algorithm gives >97 % of the theoretical optimum while fitting in SRAM.
-
-Roadmap
-
-
-
-Safety & Compliance
-
-Always follow the Aqua Forte VARIO+ II manual’s wiring instructions and local electrical codes. The VFD must be earthed, and relay wiring should be in a separate low‑voltage conduit. The manual is included in /docs/ for reference.
-
-License
-
-MIT — see LICENSE file.
+MIT License

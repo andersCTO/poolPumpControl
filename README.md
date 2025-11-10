@@ -66,6 +66,34 @@ The AquaForte Vario+ II supports:
 
 ---
 
+## Project Structure
+
+The firmware follows a standard ESP-IDF layout that keeps hardware access, networking, and business logic separated into reusable components:
+
+```
+poolPumpControl/
+├── CMakeLists.txt           # Top-level project definition
+├── Kconfig.projbuild        # Configuration options exposed in menuconfig
+├── main/
+│   ├── CMakeLists.txt
+│   └── main.c               # Entry point that starts the application core
+├── components/
+│   ├── app_core/            # High-level orchestration and state machine
+│   ├── networking/          # WiFi provisioning and connectivity helpers
+│   ├── price_client/        # Electricity price fetching logic
+│   ├── pump_driver/         # Relay and inverter control primitives
+│   ├── scheduler/           # Price-aware scheduling routines
+│   ├── sensors/             # Temperature and flow sensor interfaces
+│   └── storage/             # Persistent configuration helpers
+├── docs/
+│   └── RELAY_ESP32.md       # Hardware wiring notes (placeholder)
+└── .gitignore
+```
+
+Each component exposes public headers under `include/pool_pump/` so that functionality can be shared without tight coupling. This structure scales with additional features such as heater control or OTA updates by adding dedicated components.
+
+---
+
 ## Future Improvements
 
 - 🔥 Heater control via second relay

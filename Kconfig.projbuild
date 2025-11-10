@@ -1,0 +1,15 @@
+menu "Pool Pump Controller"
+
+config POOL_PUMP_WIFI_SSID
+    string "Default Wi-Fi SSID"
+    default ""
+    help
+        Default SSID used when provisioning the controller.
+
+config POOL_PUMP_PRICE_API_ENDPOINT
+    string "Electricity price API endpoint"
+    default "https://api.example.com/prices"
+    help
+        Endpoint that returns day-ahead electricity price data.
+
+endmenu

@@ -12,13 +12,6 @@ static const char *TAG = "pump_controller";
 #define RELAY_3_GPIO  GPIO_NUM_18
 #define RELAY_4_GPIO  GPIO_NUM_5
 
-static gpio_num_t relay_pins[] = {
-    RELAY_1_GPIO,
-    RELAY_2_GPIO,
-    RELAY_3_GPIO,
-    RELAY_4_GPIO
-};
-
 // Map modes to relay configurations for AquaForte Vario+ II
 // Digital inputs: IN1, IN2, IN3 control speed
 typedef struct {

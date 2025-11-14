@@ -38,6 +38,7 @@ jobs:
 
     - name: Build release firmware
       run: |
+        . $IDF_PATH/export.sh
         idf.py build
 
     - name: Create release archive

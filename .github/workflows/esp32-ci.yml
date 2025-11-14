@@ -21,7 +21,7 @@ jobs:
         python-version: '3.9'
 
     - name: Cache ESP-IDF
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.espressif
         key: ${{ runner.os }}-espidf-${{ hashFiles('**/sdkconfig') }}
@@ -62,7 +62,7 @@ jobs:
         echo "Build artifacts verified successfully"
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: esp32-firmware
         path: |

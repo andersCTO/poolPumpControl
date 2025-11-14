@@ -27,12 +27,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-espidf-
 
-    - name: Setup ESP-IDF
-      uses: espressif/esp-idf-ci-action@v1
-      with:
-        esp_idf_version: v5.1.2
-        target: esp32
-
     - name: Install additional tools
       run: |
         sudo apt-get update
@@ -66,9 +60,12 @@ jobs:
             pass
         "
 
-    - name: Build project
-      run: |
-        idf.py build
+    - name: Setup ESP-IDF and Build
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        target: esp32
+        command: idf.py build
 
     - name: Verify test compilation
       run: |

@@ -34,17 +34,10 @@ jobs:
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ninja-build
+        target: esp32
 
     - name: Build and verify tests
       run: |
-        # Source ESP-IDF environment
-        . $IDF_PATH/export.sh
-
         # Build the project with tests
         idf.py build
 
@@ -57,9 +50,6 @@ jobs:
 
     - name: Test configuration validation
       run: |
-        # Source ESP-IDF environment
-        . $IDF_PATH/export.sh
-
         # Validate that test configuration is correct
         idf.py --list-components | grep unity || exit 1
         echo "Unity test framework available"

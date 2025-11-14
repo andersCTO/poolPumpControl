@@ -30,16 +30,10 @@ jobs:
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ninja-build
+        target: esp32
 
     - name: Build release firmware
-      run: |
-        . $IDF_PATH/export.sh
-        idf.py build
+      run: idf.py build
 
     - name: Create release archive
       run: |

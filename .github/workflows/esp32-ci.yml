@@ -52,7 +52,7 @@ jobs:
       run: |
         source /opt/esp/idf/export.sh
         # Check for common issues
-        find . -name "*.c" -o -name "*.h" | xargs -I {} sh -c 'echo "Checking {}"; cppcheck --enable=all --std=c99 --language=c --platform=unix32 --suppress=missingIncludeSystem {}' || true
+        find . -path "./build" -prune -o -type f \( -name "*.c" -o -name "*.h" \) -print | xargs -I {} sh -c 'echo "Checking {}"; cppcheck --enable=all --std=c99 --language=c --platform=unix32 --suppress=missingIncludeSystem {}' || true
 
     - name: Verify build artifacts
       run: |

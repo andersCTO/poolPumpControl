@@ -39,7 +39,7 @@ jobs:
 
     - name: Code formatting check
       run: |
-        find . -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror --style=file || exit 1
+        find . -path "./build" -prune -o -type f \( -name "*.c" -o -name "*.h" \) -print | xargs clang-format --dry-run --Werror --style=file || exit 1
 
     - name: Static analysis with cppcheck
       run: |

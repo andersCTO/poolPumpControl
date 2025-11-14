@@ -42,7 +42,6 @@ jobs:
 
     - name: Build and verify tests
       run: |
-        source /opt/esp/idf/export.sh
         # Build the project with tests
         idf.py build
 
@@ -55,7 +54,6 @@ jobs:
 
     - name: Test configuration validation
       run: |
-        source /opt/esp/idf/export.sh
         # Validate that test configuration is correct
         idf.py --list-components | grep unity || exit 1
         echo "Unity test framework available"

@@ -40,17 +40,14 @@ jobs:
 
     - name: Build project
       run: |
-        source /opt/esp/idf/export.sh
         idf.py build
 
     - name: Build tests
       run: |
-        source /opt/esp/idf/export.sh
         idf.py build
 
     - name: Run static analysis (optional)
       run: |
-        source /opt/esp/idf/export.sh
         # Check for common issues
         find . -path "./build" -prune -o -type f \( -name "*.c" -o -name "*.h" \) -print | xargs -I {} sh -c 'echo "Checking {}"; cppcheck --enable=all --std=c99 --language=c --platform=unix32 --suppress=missingIncludeSystem {}' || true
 

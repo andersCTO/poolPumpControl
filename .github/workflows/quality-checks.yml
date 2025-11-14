@@ -67,12 +67,10 @@ jobs:
 
     - name: Build project
       run: |
-        source /opt/esp/idf/export.sh
         idf.py build
 
     - name: Verify test compilation
       run: |
-        source /opt/esp/idf/export.sh
         # Verify that tests can be built (they run on hardware)
         idf.py build
         echo "Tests compiled successfully"
@@ -93,7 +91,6 @@ jobs:
 
     - name: Check component dependencies
       run: |
-        source /opt/esp/idf/export.sh
         # Verify all components can be found
         idf.py --list-components | grep -E "(wifi_manager|price_fetcher|pump_controller|relay_control|nvs_storage)" || exit 1
         echo "All custom components found"

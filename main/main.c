@@ -1,10 +1,2 @@
-#include "pool_pump/app.h"
-
-void app_main(void)
-{
-    if (pool_pump_app_init() != ESP_OK) {
-        return;
-    }
-
-    pool_pump_app_run();
-}
+// This file exists to satisfy the ESP-IDF build system
+// The actual main function is in app_main.c

@@ -23,7 +23,7 @@ jobs:
         python-version: '3.9'
 
     - name: Cache ESP-IDF
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.espressif
         key: ${{ runner.os }}-espidf-${{ hashFiles('**/sdkconfig') }}
@@ -84,7 +84,7 @@ jobs:
         echo "Total test files: $(find test -name "test_*.c" | wc -l)" >> test-report.md
 
     - name: Upload test report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-report
         path: test-report.md

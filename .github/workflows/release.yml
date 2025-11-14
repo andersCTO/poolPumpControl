@@ -19,7 +19,7 @@ jobs:
         python-version: '3.9'
 
     - name: Cache ESP-IDF
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.espressif
         key: ${{ runner.os }}-espidf-${{ hashFiles('**/sdkconfig') }}
@@ -97,22 +97,12 @@ jobs:
         echo "- AquaForte Vario+ II inverter (optional)" >> release-notes.md
 
     - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.ref }}
-        release_name: ESP32 Pool Pump Controller ${{ github.ref }}
+        name: ESP32 Pool Pump Controller ${{ github.ref }}
         body_path: release-notes.md
         draft: false
         prerelease: false
-
-    - name: Upload release assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: esp32-pool-pump-controller-${{ github.ref }}.tar.gz
-        asset_name: esp32-pool-pump-controller-${{ github.ref }}.tar.gz
-        asset_content_type: application/gzip
+        files: |
+          esp32-pool-pump-controller-${{ github.ref }}.tar.gz

@@ -31,7 +31,6 @@ jobs:
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
-        install_packages_from_registry: false
 
     - name: Install additional tools
       run: |

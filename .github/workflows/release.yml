@@ -26,14 +26,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-espidf-
 
-    - name: Setup ESP-IDF
+    - name: Setup ESP-IDF and Build
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
         target: esp32
-
-    - name: Build release firmware
-      run: idf.py build
+        command: idf.py build
 
     - name: Create release archive
       run: |

@@ -33,12 +33,7 @@ jobs:
       with:
         esp_idf_version: v5.1.2
         target: esp32
-
-    - name: Build project
-      run: idf.py build
-
-    - name: Build tests
-      run: idf.py build
+        command: idf.py build
 
     - name: Run static analysis (optional)
       run: |

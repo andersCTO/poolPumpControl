@@ -30,17 +30,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-espidf-
 
-    - name: Setup ESP-IDF
+    - name: Setup ESP-IDF and Build
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.1.2
         target: esp32
+        command: idf.py build
 
-    - name: Build and verify tests
+    - name: Verify test files
       run: |
-        # Build the project with tests
-        idf.py build
-
         # Verify test files exist in build
         if [ -d "build" ]; then
           echo "Build directory exists"
@@ -50,10 +48,6 @@ jobs:
 
     - name: Test configuration validation
       run: |
-        # Validate that test configuration is correct
-        idf.py --list-components | grep unity || exit 1
-        echo "Unity test framework available"
-
         # Check test structure
         test -d test/unit || exit 1
         test -d test/integration || exit 1

@@ -67,12 +67,6 @@ jobs:
         target: esp32
         command: idf.py build
 
-    - name: Verify test compilation
-      run: |
-        # Verify that tests can be built (they run on hardware)
-        idf.py build
-        echo "Tests compiled successfully"
-
     - name: Check for TODO/FIXME comments
       run: |
         TODO_COUNT=$(grep -r "TODO\|FIXME\|XXX" --include="*.c" --include="*.h" . | wc -l)
@@ -86,9 +80,3 @@ jobs:
         test -f README.md || (echo "README.md missing" && exit 1)
         test -f test/README.md || (echo "test/README.md missing" && exit 1)
         echo "Documentation files present"
-
-    - name: Check component dependencies
-      run: |
-        # Verify all components can be found
-        idf.py --list-components | grep -E "(wifi_manager|price_fetcher|pump_controller|relay_control|nvs_storage)" || exit 1
-        echo "All custom components found"

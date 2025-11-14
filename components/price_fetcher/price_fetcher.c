@@ -111,7 +111,7 @@ esp_err_t price_fetcher_get_today_prices(price_data_t prices[24])
     esp_err_t err = esp_http_client_perform(client);
 
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d",
+        ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %lld",
                 esp_http_client_get_status_code(client),
                 esp_http_client_get_content_length(client));
         memcpy(prices, daily_prices, sizeof(daily_prices));

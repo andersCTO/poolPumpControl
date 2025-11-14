@@ -1,0 +1,21 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "app_main.c"
+        "pump_scheduler.c"
+        "config.c"
+    INCLUDE_DIRS
+        "."
+        "../include"
+    REQUIRES
+        wifi_manager
+        price_fetcher
+        pump_controller
+        relay_control
+        nvs_storage
+        nvs_flash
+        esp_wifi
+        esp_http_client
+        json
+        driver
+)

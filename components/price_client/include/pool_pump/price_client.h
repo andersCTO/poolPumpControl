@@ -25,4 +25,3 @@ esp_err_t price_client_fetch_schedule(price_client_schedule_t *schedule);
 #ifdef __cplusplus
 }
 #endif
-

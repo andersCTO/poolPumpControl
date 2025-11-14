@@ -1,27 +1,30 @@
 #include "relay_control.h"
+#include "config.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "config.h"
 
 static const char *TAG = "RELAY_CONTROL";
 
 static bool relay_states[RELAY_MAX] = {false};
 
-static gpio_num_t relay_pin_from_num(relay_num_t relay_num)
-{
+static gpio_num_t relay_pin_from_num(relay_num_t relay_num) {
     switch (relay_num) {
-        case RELAY_1: return RELAY_1_PIN;
-        case RELAY_2: return RELAY_2_PIN;
-        case RELAY_3: return RELAY_3_PIN;
-        case RELAY_4: return RELAY_4_PIN;
-        default: return GPIO_NUM_NC;
+        case RELAY_1:
+            return RELAY_1_PIN;
+        case RELAY_2:
+            return RELAY_2_PIN;
+        case RELAY_3:
+            return RELAY_3_PIN;
+        case RELAY_4:
+            return RELAY_4_PIN;
+        default:
+            return GPIO_NUM_NC;
     }
 }
 
-esp_err_t relay_control_init(void)
-{
+esp_err_t relay_control_init(void) {
     ESP_LOGI(TAG, "Initializing relay control...");
 
     gpio_config_t io_conf = {
@@ -32,10 +35,8 @@ esp_err_t relay_control_init(void)
     };
 
     // Configure all relay pins
-    io_conf.pin_bit_mask = (1ULL << RELAY_1_PIN) |
-                          (1ULL << RELAY_2_PIN) |
-                          (1ULL << RELAY_3_PIN) |
-                          (1ULL << RELAY_4_PIN);
+    io_conf.pin_bit_mask =
+        (1ULL << RELAY_1_PIN) | (1ULL << RELAY_2_PIN) | (1ULL << RELAY_3_PIN) | (1ULL << RELAY_4_PIN);
 
     esp_err_t ret = gpio_config(&io_conf);
     if (ret != ESP_OK) {
@@ -50,8 +51,7 @@ esp_err_t relay_control_init(void)
     return ESP_OK;
 }
 
-esp_err_t relay_control_set(relay_num_t relay_num, bool state)
-{
+esp_err_t relay_control_set(relay_num_t relay_num, bool state) {
     if (relay_num >= RELAY_MAX) {
         ESP_LOGE(TAG, "Invalid relay number: %d", relay_num);
         return ESP_ERR_INVALID_ARG;
@@ -67,8 +67,7 @@ esp_err_t relay_control_set(relay_num_t relay_num, bool state)
     return ret;
 }
 
-esp_err_t relay_control_get(relay_num_t relay_num, bool* state)
-{
+esp_err_t relay_control_get(relay_num_t relay_num, bool *state) {
     if (relay_num >= RELAY_MAX || state == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -77,8 +76,7 @@ esp_err_t relay_control_get(relay_num_t relay_num, bool* state)
     return ESP_OK;
 }
 
-esp_err_t relay_control_all_off(void)
-{
+esp_err_t relay_control_all_off(void) {
     ESP_LOGI(TAG, "Turning off all relays");
 
     for (int i = 0; i < RELAY_MAX; i++) {
@@ -89,12 +87,11 @@ esp_err_t relay_control_all_off(void)
     return ESP_OK;
 }
 
-esp_err_t relay_control_set_pump_mode(int mode)
-{
+esp_err_t relay_control_set_pump_mode(int mode) {
     // First turn off all pump relays
-    relay_control_set(RELAY_1, false);  // Night mode off
-    relay_control_set(RELAY_2, false);  // Day mode off
-    relay_control_set(RELAY_3, false);  // Backwash mode off
+    relay_control_set(RELAY_1, false); // Night mode off
+    relay_control_set(RELAY_2, false); // Day mode off
+    relay_control_set(RELAY_3, false); // Backwash mode off
 
     // Small delay to ensure clean switching
     vTaskDelay(pdMS_TO_TICKS(100));

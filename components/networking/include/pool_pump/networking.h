@@ -13,4 +13,3 @@ esp_err_t networking_get_time(void);
 #ifdef __cplusplus
 }
 #endif
-

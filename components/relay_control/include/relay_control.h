@@ -5,10 +5,10 @@
 #include <stdbool.h>
 
 typedef enum {
-    RELAY_1 = 0,  // DI2 - Night mode (1400 RPM)
-    RELAY_2,      // DI3 - Day mode (2000 RPM)
-    RELAY_3,      // DI4 - Backwash mode (2900 RPM)
-    RELAY_4,      // Reserved for heater control
+    RELAY_1 = 0, // DI2 - Night mode (1400 RPM)
+    RELAY_2,     // DI3 - Day mode (2000 RPM)
+    RELAY_3,     // DI4 - Backwash mode (2900 RPM)
+    RELAY_4,     // Reserved for heater control
     RELAY_MAX
 } relay_num_t;
 
@@ -32,7 +32,7 @@ esp_err_t relay_control_set(relay_num_t relay_num, bool state);
  * @param state Pointer to store state
  * @return ESP_OK on success
  */
-esp_err_t relay_control_get(relay_num_t relay_num, bool* state);
+esp_err_t relay_control_get(relay_num_t relay_num, bool *state);
 
 /**
  * @brief Turn off all relays

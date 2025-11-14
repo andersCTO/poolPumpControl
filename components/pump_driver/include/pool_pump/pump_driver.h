@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
 #include "esp_err.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,4 +22,3 @@ esp_err_t pump_driver_request_prime(bool enable);
 #ifdef __cplusplus
 }
 #endif
-

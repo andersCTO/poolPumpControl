@@ -3,21 +3,20 @@
  * @brief Main test runner for ESP32 Pool Pump Controller
  */
 
-#include <stdio.h>
-#include <string.h>
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
 #include "unity.h"
 #include "unity_fixture.h"
+#include <stdio.h>
+#include <string.h>
 
 static const char *TAG = "TEST_MAIN";
 
 /**
  * @brief Test runner main function
  */
-void app_main(void)
-{
+void app_main(void) {
     ESP_LOGI(TAG, "Starting ESP32 Pool Pump Controller Tests");
 
     // Initialize Unity test framework
@@ -39,24 +38,21 @@ void app_main(void)
 /**
  * @brief Unity test setup function
  */
-void setUp(void)
-{
+void setUp(void) {
     // Common test setup - called before each test
 }
 
 /**
  * @brief Unity test teardown function
  */
-void tearDown(void)
-{
+void tearDown(void) {
     // Common test cleanup - called after each test
 }
 
 /**
  * @brief Run pre-test initialization
  */
-void pre_test_init(void)
-{
+void pre_test_init(void) {
     ESP_LOGI(TAG, "Initializing test environment...");
 
     // Initialize any test-specific components here
@@ -66,8 +62,7 @@ void pre_test_init(void)
 /**
  * @brief Run post-test cleanup
  */
-void post_test_cleanup(void)
-{
+void post_test_cleanup(void) {
     ESP_LOGI(TAG, "Cleaning up test environment...");
 
     // Clean up any test-specific resources here

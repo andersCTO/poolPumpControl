@@ -1,7 +1,7 @@
 #include "wifi_manager.h"
-#include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_wifi.h"
 #include "nvs_flash.h"
 #include <string.h>
 
@@ -9,8 +9,7 @@ static const char *TAG = "WIFI_MANAGER";
 
 static bool wifi_connected = false;
 
-esp_err_t wifi_manager_init(void)
-{
+esp_err_t wifi_manager_init(void) {
     ESP_LOGI(TAG, "Initializing WiFi manager...");
 
     esp_err_t ret = esp_netif_init();
@@ -38,22 +37,19 @@ esp_err_t wifi_manager_init(void)
     return ESP_OK;
 }
 
-esp_err_t wifi_manager_connect(const char* ssid, const char* password)
-{
+esp_err_t wifi_manager_connect(const char *ssid, const char *password) {
     ESP_LOGI(TAG, "Connecting to WiFi: %s", ssid);
 
     wifi_config_t wifi_config = {
-        .sta = {
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-            .pmf_cfg = {
-                .capable = true,
-                .required = false
+        .sta =
+            {
+                .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+                .pmf_cfg = {.capable = true, .required = false},
             },
-        },
     };
 
-    strncpy((char*)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
-    strncpy((char*)wifi_config.sta.password, password, sizeof(wifi_config.sta.password));
+    strncpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
+    strncpy((char *)wifi_config.sta.password, password, sizeof(wifi_config.sta.password));
 
     esp_err_t ret = esp_wifi_set_mode(WIFI_MODE_STA);
     if (ret != ESP_OK) return ret;
@@ -71,13 +67,9 @@ esp_err_t wifi_manager_connect(const char* ssid, const char* password)
     return ESP_OK;
 }
 
-bool wifi_manager_is_connected(void)
-{
-    return wifi_connected;
-}
+bool wifi_manager_is_connected(void) { return wifi_connected; }
 
-esp_err_t wifi_manager_disconnect(void)
-{
+esp_err_t wifi_manager_disconnect(void) {
     ESP_LOGI(TAG, "Disconnecting WiFi");
     wifi_connected = false;
     return esp_wifi_disconnect();

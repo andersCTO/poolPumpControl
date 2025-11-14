@@ -19,4 +19,3 @@ esp_err_t storage_save_network_config(const storage_network_config_t *config);
 #ifdef __cplusplus
 }
 #endif
-

@@ -6,14 +6,12 @@
 
 static const char *TAG = "price_client";
 
-esp_err_t price_client_init(void)
-{
+esp_err_t price_client_init(void) {
     ESP_LOGI(TAG, "Initializing price client");
     return ESP_OK;
 }
 
-esp_err_t price_client_fetch_schedule(price_client_schedule_t *schedule)
-{
+esp_err_t price_client_fetch_schedule(price_client_schedule_t *schedule) {
     if (schedule == NULL) {
         return ESP_ERR_INVALID_ARG;
     }

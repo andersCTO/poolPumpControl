@@ -6,8 +6,8 @@
 #ifndef MOCK_DRIVER_GPIO_H
 #define MOCK_DRIVER_GPIO_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // Mock GPIO types
 typedef int gpio_num_t;
@@ -17,20 +17,20 @@ typedef int gpio_pulldown_t;
 typedef int gpio_int_type_t;
 
 // Mock GPIO constants
-#define GPIO_MODE_DISABLE       0
-#define GPIO_MODE_INPUT         1
-#define GPIO_MODE_OUTPUT        2
-#define GPIO_MODE_OUTPUT_OD     3
+#define GPIO_MODE_DISABLE 0
+#define GPIO_MODE_INPUT 1
+#define GPIO_MODE_OUTPUT 2
+#define GPIO_MODE_OUTPUT_OD 3
 #define GPIO_MODE_INPUT_OUTPUT_OD 4
-#define GPIO_MODE_INPUT_OUTPUT  5
+#define GPIO_MODE_INPUT_OUTPUT 5
 
-#define GPIO_PULLUP_DISABLE     0
-#define GPIO_PULLUP_ENABLE      1
-#define GPIO_PULLDOWN_DISABLE   0
-#define GPIO_PULLDOWN_ENABLE    1
-#define GPIO_INTR_DISABLE       0
+#define GPIO_PULLUP_DISABLE 0
+#define GPIO_PULLUP_ENABLE 1
+#define GPIO_PULLDOWN_DISABLE 0
+#define GPIO_PULLDOWN_ENABLE 1
+#define GPIO_INTR_DISABLE 0
 
-#define GPIO_NUM_NC             -1
+#define GPIO_NUM_NC -1
 
 // Mock GPIO pin bit mask type
 typedef uint64_t gpio_config_t;

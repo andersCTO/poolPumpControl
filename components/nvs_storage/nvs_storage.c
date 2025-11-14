@@ -1,14 +1,13 @@
 #include "nvs_storage.h"
-#include "nvs_flash.h"
-#include "nvs.h"
 #include "esp_log.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 #include <string.h>
 
 static const char *TAG = "nvs_storage";
 static const char *NVS_NAMESPACE = "pool_pump";
 
-esp_err_t nvs_storage_init(void)
-{
+esp_err_t nvs_storage_init(void) {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -24,29 +23,25 @@ esp_err_t nvs_storage_init(void)
     return ret;
 }
 
-esp_err_t nvs_storage_set_wifi_credentials(const char* ssid, const char* password)
-{
+esp_err_t nvs_storage_set_wifi_credentials(const char *ssid, const char *password) {
     esp_err_t ret = nvs_storage_save_string("wifi_ssid", ssid);
     if (ret != ESP_OK) return ret;
     return nvs_storage_save_string("wifi_pass", password);
 }
 
-esp_err_t nvs_storage_get_wifi_credentials(char* ssid, char* password)
-{
+esp_err_t nvs_storage_get_wifi_credentials(char *ssid, char *password) {
     esp_err_t ret = nvs_storage_load_string("wifi_ssid", ssid, 32);
     if (ret != ESP_OK) return ret;
     return nvs_storage_load_string("wifi_pass", password, 64);
 }
 
-esp_err_t nvs_storage_set_pump_config(uint8_t mode, uint16_t daily_runtime)
-{
+esp_err_t nvs_storage_set_pump_config(uint8_t mode, uint16_t daily_runtime) {
     esp_err_t ret = nvs_storage_save_int("pump_mode", mode);
     if (ret != ESP_OK) return ret;
     return nvs_storage_save_int("daily_runtime", daily_runtime);
 }
 
-esp_err_t nvs_storage_get_pump_config(uint8_t* mode, uint16_t* daily_runtime)
-{
+esp_err_t nvs_storage_get_pump_config(uint8_t *mode, uint16_t *daily_runtime) {
     int32_t temp_mode, temp_runtime;
     esp_err_t ret = nvs_storage_load_int("pump_mode", &temp_mode);
     if (ret != ESP_OK) return ret;
@@ -57,14 +52,12 @@ esp_err_t nvs_storage_get_pump_config(uint8_t* mode, uint16_t* daily_runtime)
     return ESP_OK;
 }
 
-esp_err_t nvs_storage_set_daily_stats(uint32_t date, uint16_t runtime_minutes, float avg_price)
-{
+esp_err_t nvs_storage_set_daily_stats(uint32_t date, uint16_t runtime_minutes, float avg_price) {
     // For now, just store the runtime. Could be extended to store more stats
     return nvs_storage_save_int("last_runtime", runtime_minutes);
 }
 
-esp_err_t nvs_storage_save_string(const char* key, const char* value)
-{
+esp_err_t nvs_storage_save_string(const char *key, const char *value) {
     nvs_handle_t handle;
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
     if (ret != ESP_OK) {
@@ -86,8 +79,7 @@ esp_err_t nvs_storage_save_string(const char* key, const char* value)
     return ret;
 }
 
-esp_err_t nvs_storage_load_string(const char* key, char* buffer, size_t buffer_size)
-{
+esp_err_t nvs_storage_load_string(const char *key, char *buffer, size_t buffer_size) {
     nvs_handle_t handle;
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle);
     if (ret != ESP_OK) {
@@ -108,8 +100,7 @@ esp_err_t nvs_storage_load_string(const char* key, char* buffer, size_t buffer_s
     return ret;
 }
 
-esp_err_t nvs_storage_save_int(const char* key, int32_t value)
-{
+esp_err_t nvs_storage_save_int(const char *key, int32_t value) {
     nvs_handle_t handle;
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
     if (ret != ESP_OK) return ret;
@@ -124,8 +115,7 @@ esp_err_t nvs_storage_save_int(const char* key, int32_t value)
     return ret;
 }
 
-esp_err_t nvs_storage_load_int(const char* key, int32_t* value)
-{
+esp_err_t nvs_storage_load_int(const char *key, int32_t *value) {
     nvs_handle_t handle;
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle);
     if (ret != ESP_OK) return ret;
@@ -140,8 +130,7 @@ esp_err_t nvs_storage_load_int(const char* key, int32_t* value)
     return ret;
 }
 
-esp_err_t nvs_storage_erase(const char* key)
-{
+esp_err_t nvs_storage_erase(const char *key) {
     nvs_handle_t handle;
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
     if (ret != ESP_OK) return ret;

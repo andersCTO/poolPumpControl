@@ -6,12 +6,12 @@
 #ifndef MOCK_ESP_HTTP_CLIENT_H
 #define MOCK_ESP_HTTP_CLIENT_H
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 // Mock HTTP client types
-typedef void* esp_http_client_handle_t;
+typedef void *esp_http_client_handle_t;
 
 typedef enum {
     HTTP_EVENT_ERROR = 0,

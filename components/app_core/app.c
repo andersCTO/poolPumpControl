@@ -7,14 +7,13 @@
 #include "pool_pump/sensors.h"
 #include "pool_pump/storage.h"
 
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
 
 static const char *TAG = "pool_pump_app";
 
-esp_err_t pool_pump_app_init(void)
-{
+esp_err_t pool_pump_app_init(void) {
     esp_err_t err = storage_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Storage init failed: %s", esp_err_to_name(err));
@@ -54,8 +53,7 @@ esp_err_t pool_pump_app_init(void)
     return ESP_OK;
 }
 
-void pool_pump_app_run(void)
-{
+void pool_pump_app_run(void) {
     while (true) {
         if (networking_connect() == ESP_OK) {
             price_client_schedule_t schedule = {0};

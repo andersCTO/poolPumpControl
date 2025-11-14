@@ -6,9 +6,9 @@
 
 typedef enum {
     PUMP_MODE_OFF = 0,
-    PUMP_MODE_NIGHT,    // 1400 RPM
-    PUMP_MODE_DAY,      // 2000 RPM
-    PUMP_MODE_BACKWASH  // 2900 RPM
+    PUMP_MODE_NIGHT,   // 1400 RPM
+    PUMP_MODE_DAY,     // 2000 RPM
+    PUMP_MODE_BACKWASH // 2900 RPM
 } pump_mode_t;
 
 typedef struct {
@@ -36,7 +36,7 @@ esp_err_t pump_controller_set_mode(pump_mode_t mode);
  * @param status Pointer to status structure
  * @return ESP_OK on success
  */
-esp_err_t pump_controller_get_status(pump_status_t* status);
+esp_err_t pump_controller_get_status(pump_status_t *status);
 
 /**
  * @brief Start pump operation

@@ -6,8 +6,8 @@
 #ifndef MOCK_ESP_WIFI_H
 #define MOCK_ESP_WIFI_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // Mock WiFi types and structures
 typedef enum {

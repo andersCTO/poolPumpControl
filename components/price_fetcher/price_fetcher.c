@@ -1,8 +1,8 @@
 #include "price_fetcher.h"
-#include "esp_http_client.h"
-#include "esp_log.h"
 #include "cJSON.h"
 #include "config.h"
+#include "esp_http_client.h"
+#include "esp_log.h"
 #include <string.h>
 
 static const char *TAG = "PRICE_FETCHER";
@@ -12,12 +12,11 @@ static const char *TAG = "PRICE_FETCHER";
 static price_data_t daily_prices[24];
 static float current_price = 0.0f;
 
-static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
-{
+static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
     static char *output_buffer;
     static int output_len;
 
-    switch(evt->event_id) {
+    switch (evt->event_id) {
         case HTTP_EVENT_ERROR:
             ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
             break;
@@ -34,7 +33,7 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
             ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
             if (!esp_http_client_is_chunked_response(evt->client)) {
                 if (output_buffer == NULL) {
-                    output_buffer = (char *) malloc(esp_http_client_get_content_length(evt->client));
+                    output_buffer = (char *)malloc(esp_http_client_get_content_length(evt->client));
                     output_len = 0;
                     if (output_buffer == NULL) {
                         ESP_LOGE(TAG, "Failed to allocate memory for output buffer");
@@ -90,16 +89,14 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-esp_err_t price_fetcher_init(void)
-{
+esp_err_t price_fetcher_init(void) {
     ESP_LOGI(TAG, "Initializing price fetcher");
     // Initialize daily prices to zero
     memset(daily_prices, 0, sizeof(daily_prices));
     return ESP_OK;
 }
 
-esp_err_t price_fetcher_get_today_prices(price_data_t prices[24])
-{
+esp_err_t price_fetcher_get_today_prices(price_data_t prices[24]) {
     ESP_LOGI(TAG, "Fetching today's electricity prices");
 
     esp_http_client_config_t config = {
@@ -111,9 +108,10 @@ esp_err_t price_fetcher_get_today_prices(price_data_t prices[24])
     esp_err_t err = esp_http_client_perform(client);
 
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %lld",
-                esp_http_client_get_status_code(client),
-                esp_http_client_get_content_length(client));
+        ESP_LOGI(TAG,
+                 "HTTP GET Status = %d, content_length = %lld",
+                 esp_http_client_get_status_code(client),
+                 esp_http_client_get_content_length(client));
         memcpy(prices, daily_prices, sizeof(daily_prices));
     } else {
         ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
@@ -123,8 +121,7 @@ esp_err_t price_fetcher_get_today_prices(price_data_t prices[24])
     return err;
 }
 
-float price_fetcher_get_current_price(void)
-{
+float price_fetcher_get_current_price(void) {
     // Get current hour
     time_t now;
     struct tm timeinfo;
@@ -139,8 +136,7 @@ float price_fetcher_get_current_price(void)
     return current_price;
 }
 
-bool price_fetcher_is_low_price_period(void)
-{
+bool price_fetcher_is_low_price_period(void) {
     float current = price_fetcher_get_current_price();
     return (current > 0 && current < PRICE_THRESHOLD_LOW);
 }

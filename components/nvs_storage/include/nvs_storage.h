@@ -16,7 +16,7 @@ esp_err_t nvs_storage_init(void);
  * @param password WiFi password
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_set_wifi_credentials(const char* ssid, const char* password);
+esp_err_t nvs_storage_set_wifi_credentials(const char *ssid, const char *password);
 
 /**
  * @brief Retrieve WiFi credentials
@@ -24,7 +24,7 @@ esp_err_t nvs_storage_set_wifi_credentials(const char* ssid, const char* passwor
  * @param password Buffer for password (min 64 bytes)
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_get_wifi_credentials(char* ssid, char* password);
+esp_err_t nvs_storage_get_wifi_credentials(char *ssid, char *password);
 
 /**
  * @brief Store pump configuration
@@ -40,7 +40,7 @@ esp_err_t nvs_storage_set_pump_config(uint8_t mode, uint16_t daily_runtime);
  * @param daily_runtime Pointer to store daily runtime
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_get_pump_config(uint8_t* mode, uint16_t* daily_runtime);
+esp_err_t nvs_storage_get_pump_config(uint8_t *mode, uint16_t *daily_runtime);
 
 /**
  * @brief Store daily statistics
@@ -56,7 +56,7 @@ esp_err_t nvs_storage_set_daily_stats(uint32_t date, uint16_t runtime_minutes, f
  * @param key Key to erase
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_erase(const char* key);
+esp_err_t nvs_storage_erase(const char *key);
 
 /**
  * @brief Save a string value to NVS
@@ -64,7 +64,7 @@ esp_err_t nvs_storage_erase(const char* key);
  * @param value String value to save
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_save_string(const char* key, const char* value);
+esp_err_t nvs_storage_save_string(const char *key, const char *value);
 
 /**
  * @brief Load a string value from NVS
@@ -73,7 +73,7 @@ esp_err_t nvs_storage_save_string(const char* key, const char* value);
  * @param buffer_size Size of the buffer
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_load_string(const char* key, char* buffer, size_t buffer_size);
+esp_err_t nvs_storage_load_string(const char *key, char *buffer, size_t buffer_size);
 
 /**
  * @brief Save an integer value to NVS
@@ -81,7 +81,7 @@ esp_err_t nvs_storage_load_string(const char* key, char* buffer, size_t buffer_s
  * @param value Integer value to save
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_save_int(const char* key, int32_t value);
+esp_err_t nvs_storage_save_int(const char *key, int32_t value);
 
 /**
  * @brief Load an integer value from NVS
@@ -89,6 +89,6 @@ esp_err_t nvs_storage_save_int(const char* key, int32_t value);
  * @param value Pointer to store the value
  * @return ESP_OK on success
  */
-esp_err_t nvs_storage_load_int(const char* key, int32_t* value);
+esp_err_t nvs_storage_load_int(const char *key, int32_t *value);
 
 #endif // NVS_STORAGE_H

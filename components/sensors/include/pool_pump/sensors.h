@@ -13,4 +13,3 @@ esp_err_t sensors_get_water_temperature(float *temperature_c);
 #ifdef __cplusplus
 }
 #endif
-

@@ -5,8 +5,8 @@
 #include <stdbool.h>
 
 typedef struct {
-    int hour;               // Hour of day (0-23)
-    float price_eur_kwh;    // Price in EUR/kWh
+    int hour;            // Hour of day (0-23)
+    float price_eur_kwh; // Price in EUR/kWh
 } price_data_t;
 
 /**

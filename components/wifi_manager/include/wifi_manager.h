@@ -16,7 +16,7 @@ esp_err_t wifi_manager_init(void);
  * @param password WiFi network password
  * @return ESP_OK on success
  */
-esp_err_t wifi_manager_connect(const char* ssid, const char* password);
+esp_err_t wifi_manager_connect(const char *ssid, const char *password);
 
 /**
  * @brief Check if WiFi is connected

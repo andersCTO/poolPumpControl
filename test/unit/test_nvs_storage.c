@@ -3,30 +3,27 @@
  * @brief Unit tests for NVS storage component
  */
 
-#include "unity.h"
 #include "nvs_storage.h"
+#include "unity.h"
 #include <string.h>
 
 // Test group
 TEST_GROUP(nvs_storage_tests);
 
 // Test setup and teardown
-TEST_SETUP(nvs_storage_tests)
-{
+TEST_SETUP(nvs_storage_tests) {
     // Reset NVS state before each test
     nvs_storage_deinit();
 }
 
-TEST_TEAR_DOWN(nvs_storage_tests)
-{
+TEST_TEAR_DOWN(nvs_storage_tests) {
     // Clean up after each test
 }
 
 /**
  * @brief Test NVS initialization
  */
-TEST(nvs_storage_tests, test_init_success)
-{
+TEST(nvs_storage_tests, test_init_success) {
     esp_err_t result = nvs_storage_init();
     TEST_ASSERT_EQUAL(ESP_OK, result);
 }
@@ -34,8 +31,7 @@ TEST(nvs_storage_tests, test_init_success)
 /**
  * @brief Test NVS deinitialization
  */
-TEST(nvs_storage_tests, test_deinit_success)
-{
+TEST(nvs_storage_tests, test_deinit_success) {
     nvs_storage_init();
     esp_err_t result = nvs_storage_deinit();
     TEST_ASSERT_EQUAL(ESP_OK, result);
@@ -44,17 +40,11 @@ TEST(nvs_storage_tests, test_deinit_success)
 /**
  * @brief Test storing and retrieving pump schedule
  */
-TEST(nvs_storage_tests, test_store_and_get_pump_schedule)
-{
+TEST(nvs_storage_tests, test_store_and_get_pump_schedule) {
     nvs_storage_init();
 
     pump_schedule_t schedule = {
-        .start_hour = 8,
-        .start_minute = 30,
-        .duration_hours = 4,
-        .duration_minutes = 15,
-        .enabled = true
-    };
+        .start_hour = 8, .start_minute = 30, .duration_hours = 4, .duration_minutes = 15, .enabled = true};
 
     // Store schedule
     esp_err_t store_result = nvs_storage_store_pump_schedule(&schedule);
@@ -76,14 +66,10 @@ TEST(nvs_storage_tests, test_store_and_get_pump_schedule)
 /**
  * @brief Test storing and retrieving WiFi configuration
  */
-TEST(nvs_storage_tests, test_store_and_get_wifi_config)
-{
+TEST(nvs_storage_tests, test_store_and_get_wifi_config) {
     nvs_storage_init();
 
-    wifi_config_t config = {
-        .ssid = "TestNetwork",
-        .password = "TestPassword123"
-    };
+    wifi_config_t config = {.ssid = "TestNetwork", .password = "TestPassword123"};
 
     // Store WiFi config
     esp_err_t store_result = nvs_storage_store_wifi_config(&config);
@@ -102,16 +88,13 @@ TEST(nvs_storage_tests, test_store_and_get_wifi_config)
 /**
  * @brief Test storing and retrieving system settings
  */
-TEST(nvs_storage_tests, test_store_and_get_system_settings)
-{
+TEST(nvs_storage_tests, test_store_and_get_system_settings) {
     nvs_storage_init();
 
-    system_settings_t settings = {
-        .backwash_interval_days = 7,
-        .backwash_duration_minutes = 5,
-        .low_price_threshold = 0.12f,
-        .timezone_offset = 2
-    };
+    system_settings_t settings = {.backwash_interval_days = 7,
+                                  .backwash_duration_minutes = 5,
+                                  .low_price_threshold = 0.12f,
+                                  .timezone_offset = 2};
 
     // Store settings
     esp_err_t store_result = nvs_storage_store_system_settings(&settings);
@@ -132,8 +115,7 @@ TEST(nvs_storage_tests, test_store_and_get_system_settings)
 /**
  * @brief Test retrieving data when NVS is not initialized
  */
-TEST(nvs_storage_tests, test_get_without_init)
-{
+TEST(nvs_storage_tests, test_get_without_init) {
     pump_schedule_t schedule;
     esp_err_t result = nvs_storage_get_pump_schedule(&schedule);
     TEST_ASSERT_NOT_EQUAL(ESP_OK, result);
@@ -142,8 +124,7 @@ TEST(nvs_storage_tests, test_get_without_init)
 /**
  * @brief Test storing data when NVS is not initialized
  */
-TEST(nvs_storage_tests, test_store_without_init)
-{
+TEST(nvs_storage_tests, test_store_without_init) {
     pump_schedule_t schedule = {0};
     esp_err_t result = nvs_storage_store_pump_schedule(&schedule);
     TEST_ASSERT_NOT_EQUAL(ESP_OK, result);
@@ -152,8 +133,7 @@ TEST(nvs_storage_tests, test_store_without_init)
 /**
  * @brief Test default pump schedule values
  */
-TEST(nvs_storage_tests, test_default_pump_schedule)
-{
+TEST(nvs_storage_tests, test_default_pump_schedule) {
     nvs_storage_init();
 
     pump_schedule_t schedule;
@@ -165,14 +145,13 @@ TEST(nvs_storage_tests, test_default_pump_schedule)
     TEST_ASSERT_EQUAL(0, schedule.start_minute);   // Default start minute
     TEST_ASSERT_EQUAL(4, schedule.duration_hours); // Default duration
     TEST_ASSERT_EQUAL(0, schedule.duration_minutes);
-    TEST_ASSERT_TRUE(schedule.enabled);            // Default enabled
+    TEST_ASSERT_TRUE(schedule.enabled); // Default enabled
 }
 
 /**
  * @brief Test default system settings values
  */
-TEST(nvs_storage_tests, test_default_system_settings)
-{
+TEST(nvs_storage_tests, test_default_system_settings) {
     nvs_storage_init();
 
     system_settings_t settings;
@@ -189,14 +168,10 @@ TEST(nvs_storage_tests, test_default_system_settings)
 /**
  * @brief Test WiFi config with empty strings
  */
-TEST(nvs_storage_tests, test_wifi_config_empty_strings)
-{
+TEST(nvs_storage_tests, test_wifi_config_empty_strings) {
     nvs_storage_init();
 
-    wifi_config_t config = {
-        .ssid = "",
-        .password = ""
-    };
+    wifi_config_t config = {.ssid = "", .password = ""};
 
     esp_err_t store_result = nvs_storage_store_wifi_config(&config);
     TEST_ASSERT_EQUAL(ESP_OK, store_result);
@@ -212,17 +187,14 @@ TEST(nvs_storage_tests, test_wifi_config_empty_strings)
 /**
  * @brief Test pump schedule with boundary values
  */
-TEST(nvs_storage_tests, test_pump_schedule_boundary_values)
-{
+TEST(nvs_storage_tests, test_pump_schedule_boundary_values) {
     nvs_storage_init();
 
-    pump_schedule_t schedule = {
-        .start_hour = 23,      // Max hour
-        .start_minute = 59,    // Max minute
-        .duration_hours = 12,  // Long duration
-        .duration_minutes = 30,
-        .enabled = false
-    };
+    pump_schedule_t schedule = {.start_hour = 23,     // Max hour
+                                .start_minute = 59,   // Max minute
+                                .duration_hours = 12, // Long duration
+                                .duration_minutes = 30,
+                                .enabled = false};
 
     esp_err_t store_result = nvs_storage_store_pump_schedule(&schedule);
     TEST_ASSERT_EQUAL(ESP_OK, store_result);
@@ -241,8 +213,7 @@ TEST(nvs_storage_tests, test_pump_schedule_boundary_values)
 /**
  * @brief Test system settings with boundary values
  */
-TEST(nvs_storage_tests, test_system_settings_boundary_values)
-{
+TEST(nvs_storage_tests, test_system_settings_boundary_values) {
     nvs_storage_init();
 
     system_settings_t settings = {
@@ -266,8 +237,7 @@ TEST(nvs_storage_tests, test_system_settings_boundary_values)
 }
 
 // Test group runner
-TEST_GROUP_RUNNER(nvs_storage_tests)
-{
+TEST_GROUP_RUNNER(nvs_storage_tests) {
     RUN_TEST_CASE(nvs_storage_tests, test_init_success);
     RUN_TEST_CASE(nvs_storage_tests, test_deinit_success);
     RUN_TEST_CASE(nvs_storage_tests, test_store_and_get_pump_schedule);

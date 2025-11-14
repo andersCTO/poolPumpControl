@@ -3,30 +3,25 @@
  * @brief Unit tests for price fetcher component
  */
 
-#include "unity.h"
-#include "price_fetcher.h"
 #include "mock_esp_http_client.h"
+#include "price_fetcher.h"
+#include "unity.h"
 #include <string.h>
 
 // Test group
 TEST_GROUP(price_fetcher_tests);
 
 // Test setup and teardown
-TEST_SETUP(price_fetcher_tests)
-{
-    mock_http_client_reset();
-}
+TEST_SETUP(price_fetcher_tests) { mock_http_client_reset(); }
 
-TEST_TEAR_DOWN(price_fetcher_tests)
-{
+TEST_TEAR_DOWN(price_fetcher_tests) {
     // Clean up after each test
 }
 
 /**
  * @brief Test price fetcher initialization
  */
-TEST(price_fetcher_tests, test_init_success)
-{
+TEST(price_fetcher_tests, test_init_success) {
     esp_err_t result = price_fetcher_init();
     TEST_ASSERT_EQUAL(ESP_OK, result);
 }
@@ -34,16 +29,15 @@ TEST(price_fetcher_tests, test_init_success)
 /**
  * @brief Test fetching today's prices with valid JSON response
  */
-TEST(price_fetcher_tests, test_get_today_prices_success)
-{
+TEST(price_fetcher_tests, test_get_today_prices_success) {
     // Mock JSON response with price data
     const char *mock_json = "{"
-        "\"records\": ["
-            "{\"SpotPriceEUR\": 0.123},"
-            "{\"SpotPriceEUR\": 0.145},"
-            "{\"SpotPriceEUR\": 0.089}"
-        "]"
-    "}";
+                            "\"records\": ["
+                            "{\"SpotPriceEUR\": 0.123},"
+                            "{\"SpotPriceEUR\": 0.145},"
+                            "{\"SpotPriceEUR\": 0.089}"
+                            "]"
+                            "}";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -62,8 +56,7 @@ TEST(price_fetcher_tests, test_get_today_prices_success)
 /**
  * @brief Test fetching prices with HTTP error
  */
-TEST(price_fetcher_tests, test_get_today_prices_http_error)
-{
+TEST(price_fetcher_tests, test_get_today_prices_http_error) {
     mock_http_client_set_status_code(404);
 
     price_data_t prices[24];
@@ -74,8 +67,7 @@ TEST(price_fetcher_tests, test_get_today_prices_http_error)
 /**
  * @brief Test fetching prices with invalid JSON
  */
-TEST(price_fetcher_tests, test_get_today_prices_invalid_json)
-{
+TEST(price_fetcher_tests, test_get_today_prices_invalid_json) {
     const char *invalid_json = "{ invalid json }";
     mock_http_client_set_response_data(invalid_json, strlen(invalid_json));
     mock_http_client_set_status_code(200);
@@ -88,8 +80,7 @@ TEST(price_fetcher_tests, test_get_today_prices_invalid_json)
 /**
  * @brief Test getting current price when no data is available
  */
-TEST(price_fetcher_tests, test_get_current_price_no_data)
-{
+TEST(price_fetcher_tests, test_get_current_price_no_data) {
     float price = price_fetcher_get_current_price();
     TEST_ASSERT_EQUAL_FLOAT(0.0f, price);
 }
@@ -97,14 +88,13 @@ TEST(price_fetcher_tests, test_get_current_price_no_data)
 /**
  * @brief Test low price period detection with high price
  */
-TEST(price_fetcher_tests, test_is_low_price_period_high_price)
-{
+TEST(price_fetcher_tests, test_is_low_price_period_high_price) {
     // Mock high price data
     const char *mock_json = "{"
-        "\"records\": ["
-            "{\"SpotPriceEUR\": 0.25}"  // Above threshold
-        "]"
-    "}";
+                            "\"records\": ["
+                            "{\"SpotPriceEUR\": 0.25}" // Above threshold
+                            "]"
+                            "}";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -119,14 +109,13 @@ TEST(price_fetcher_tests, test_is_low_price_period_high_price)
 /**
  * @brief Test low price period detection with low price
  */
-TEST(price_fetcher_tests, test_is_low_price_period_low_price)
-{
+TEST(price_fetcher_tests, test_is_low_price_period_low_price) {
     // Mock low price data
     const char *mock_json = "{"
-        "\"records\": ["
-            "{\"SpotPriceEUR\": 0.08}"  // Below threshold
-        "]"
-    "}";
+                            "\"records\": ["
+                            "{\"SpotPriceEUR\": 0.08}" // Below threshold
+                            "]"
+                            "}";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -141,14 +130,13 @@ TEST(price_fetcher_tests, test_is_low_price_period_low_price)
 /**
  * @brief Test low price period detection with zero price
  */
-TEST(price_fetcher_tests, test_is_low_price_period_zero_price)
-{
+TEST(price_fetcher_tests, test_is_low_price_period_zero_price) {
     // Mock zero price data
     const char *mock_json = "{"
-        "\"records\": ["
-            "{\"SpotPriceEUR\": 0.0}"
-        "]"
-    "}";
+                            "\"records\": ["
+                            "{\"SpotPriceEUR\": 0.0}"
+                            "]"
+                            "}";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -163,8 +151,7 @@ TEST(price_fetcher_tests, test_is_low_price_period_zero_price)
 /**
  * @brief Test price data structure initialization
  */
-TEST(price_fetcher_tests, test_price_data_initialization)
-{
+TEST(price_fetcher_tests, test_price_data_initialization) {
     price_data_t prices[24];
 
     // Initially all prices should be 0
@@ -177,18 +164,17 @@ TEST(price_fetcher_tests, test_price_data_initialization)
 /**
  * @brief Test multiple price records parsing
  */
-TEST(price_fetcher_tests, test_multiple_price_records)
-{
+TEST(price_fetcher_tests, test_multiple_price_records) {
     // Mock JSON with 5 price records
     const char *mock_json = "{"
-        "\"records\": ["
-            "{\"SpotPriceEUR\": 0.10},"
-            "{\"SpotPriceEUR\": 0.12},"
-            "{\"SpotPriceEUR\": 0.08},"
-            "{\"SpotPriceEUR\": 0.15},"
-            "{\"SpotPriceEUR\": 0.09}"
-        "]"
-    "}";
+                            "\"records\": ["
+                            "{\"SpotPriceEUR\": 0.10},"
+                            "{\"SpotPriceEUR\": 0.12},"
+                            "{\"SpotPriceEUR\": 0.08},"
+                            "{\"SpotPriceEUR\": 0.15},"
+                            "{\"SpotPriceEUR\": 0.09}"
+                            "]"
+                            "}";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -211,8 +197,7 @@ TEST(price_fetcher_tests, test_multiple_price_records)
 }
 
 // Test group runner
-TEST_GROUP_RUNNER(price_fetcher_tests)
-{
+TEST_GROUP_RUNNER(price_fetcher_tests) {
     RUN_TEST_CASE(price_fetcher_tests, test_init_success);
     RUN_TEST_CASE(price_fetcher_tests, test_get_today_prices_success);
     RUN_TEST_CASE(price_fetcher_tests, test_get_today_prices_http_error);

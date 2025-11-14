@@ -3,28 +3,26 @@
  * @brief Full system integration tests
  */
 
-#include "unity.h"
 #include "app_main.h"
-#include "wifi_manager.h"
-#include "pump_controller.h"
-#include "price_fetcher.h"
 #include "nvs_storage.h"
+#include "price_fetcher.h"
+#include "pump_controller.h"
 #include "pump_scheduler.h"
 #include "sensors.h"
+#include "unity.h"
+#include "wifi_manager.h"
 #include <time.h>
 
 // Test group
 TEST_GROUP(full_system_integration_tests);
 
 // Test setup and teardown
-TEST_SETUP(full_system_integration_tests)
-{
+TEST_SETUP(full_system_integration_tests) {
     // Initialize entire system
     app_init();
 }
 
-TEST_TEAR_DOWN(full_system_integration_tests)
-{
+TEST_TEAR_DOWN(full_system_integration_tests) {
     // Clean up entire system
     app_deinit();
 }
@@ -32,8 +30,7 @@ TEST_TEAR_DOWN(full_system_integration_tests)
 /**
  * @brief Test complete system initialization
  */
-TEST(full_system_integration_tests, test_system_initialization)
-{
+TEST(full_system_integration_tests, test_system_initialization) {
     // System should initialize without errors
     esp_err_t result = app_init();
     TEST_ASSERT_EQUAL(ESP_OK, result);
@@ -50,8 +47,7 @@ TEST(full_system_integration_tests, test_system_initialization)
 /**
  * @brief Test WiFi connection and pump control integration
  */
-TEST(full_system_integration_tests, test_wifi_pump_integration)
-{
+TEST(full_system_integration_tests, test_wifi_pump_integration) {
     // Connect to WiFi
     esp_err_t wifi_result = wifi_manager_connect("TestSSID", "TestPassword");
     TEST_ASSERT_EQUAL(ESP_OK, wifi_result);
@@ -77,8 +73,7 @@ TEST(full_system_integration_tests, test_wifi_pump_integration)
 /**
  * @brief Test price fetching and scheduling integration
  */
-TEST(full_system_integration_tests, test_price_scheduling_integration)
-{
+TEST(full_system_integration_tests, test_price_scheduling_integration) {
     // Connect to WiFi first
     wifi_manager_connect("TestSSID", "TestPassword");
 
@@ -88,9 +83,7 @@ TEST(full_system_integration_tests, test_price_scheduling_integration)
     TEST_ASSERT_EQUAL(ESP_OK, price_result);
 
     // Set up scheduling with price awareness
-    system_settings_t settings = {
-        .low_price_threshold = 0.15f
-    };
+    system_settings_t settings = {.low_price_threshold = 0.15f};
     nvs_storage_store_system_settings(&settings);
 
     pump_scheduler_enable_price_based_scheduling(true);
@@ -110,8 +103,7 @@ TEST(full_system_integration_tests, test_price_scheduling_integration)
 /**
  * @brief Test sensor monitoring and pump control integration
  */
-TEST(full_system_integration_tests, test_sensor_pump_integration)
-{
+TEST(full_system_integration_tests, test_sensor_pump_integration) {
     // Initialize sensors
     esp_err_t sensor_result = sensors_init();
     TEST_ASSERT_EQUAL(ESP_OK, sensor_result);
@@ -123,19 +115,18 @@ TEST(full_system_integration_tests, test_sensor_pump_integration)
 
     // Based on sensor readings, system should make decisions
     // For example, if water level is low, pump should not start
-    if (data.water_level < 10.0f) {  // Low water level threshold
+    if (data.water_level < 10.0f) { // Low water level threshold
         // Pump should be prevented from starting
         esp_err_t pump_result = pump_controller_start_pump(PUMP_MODE_NORMAL);
         // In real system, this might return error or be prevented by safety checks
-        TEST_ASSERT_EQUAL(ESP_OK, pump_result);  // For this test, assume it starts but logs warning
+        TEST_ASSERT_EQUAL(ESP_OK, pump_result); // For this test, assume it starts but logs warning
     }
 }
 
 /**
  * @brief Test system recovery after WiFi disconnection
  */
-TEST(full_system_integration_tests, test_wifi_reconnection_recovery)
-{
+TEST(full_system_integration_tests, test_wifi_reconnection_recovery) {
     // Connect to WiFi
     wifi_manager_connect("TestSSID", "TestPassword");
     wifi_status_t status = wifi_manager_get_status();
@@ -159,13 +150,9 @@ TEST(full_system_integration_tests, test_wifi_reconnection_recovery)
 /**
  * @brief Test backwash cycle integration
  */
-TEST(full_system_integration_tests, test_backwash_cycle_integration)
-{
+TEST(full_system_integration_tests, test_backwash_cycle_integration) {
     // Set up backwash settings
-    system_settings_t settings = {
-        .backwash_interval_days = 7,
-        .backwash_duration_minutes = 5
-    };
+    system_settings_t settings = {.backwash_interval_days = 7, .backwash_duration_minutes = 5};
     nvs_storage_store_system_settings(&settings);
 
     // Start backwash cycle
@@ -186,30 +173,19 @@ TEST(full_system_integration_tests, test_backwash_cycle_integration)
 /**
  * @brief Test system configuration persistence
  */
-TEST(full_system_integration_tests, test_configuration_persistence)
-{
+TEST(full_system_integration_tests, test_configuration_persistence) {
     // Set up system configuration
     pump_schedule_t schedule = {
-        .start_hour = 10,
-        .start_minute = 30,
-        .duration_hours = 6,
-        .duration_minutes = 0,
-        .enabled = true
-    };
+        .start_hour = 10, .start_minute = 30, .duration_hours = 6, .duration_minutes = 0, .enabled = true};
     nvs_storage_store_pump_schedule(&schedule);
 
-    system_settings_t settings = {
-        .backwash_interval_days = 14,
-        .backwash_duration_minutes = 10,
-        .low_price_threshold = 0.12f,
-        .timezone_offset = 1
-    };
+    system_settings_t settings = {.backwash_interval_days = 14,
+                                  .backwash_duration_minutes = 10,
+                                  .low_price_threshold = 0.12f,
+                                  .timezone_offset = 1};
     nvs_storage_store_system_settings(&settings);
 
-    wifi_config_t wifi_config = {
-        .ssid = "MyHomeNetwork",
-        .password = "SecurePass123"
-    };
+    wifi_config_t wifi_config = {.ssid = "MyHomeNetwork", .password = "SecurePass123"};
     nvs_storage_store_wifi_config(&wifi_config);
 
     // Simulate system restart (reinitialize)
@@ -238,8 +214,7 @@ TEST(full_system_integration_tests, test_configuration_persistence)
 /**
  * @brief Test error handling and recovery
  */
-TEST(full_system_integration_tests, test_error_handling_recovery)
-{
+TEST(full_system_integration_tests, test_error_handling_recovery) {
     // Test pump failure recovery
     esp_err_t start_result = pump_controller_start_pump(PUMP_MODE_NORMAL);
     TEST_ASSERT_EQUAL(ESP_OK, start_result);
@@ -259,8 +234,7 @@ TEST(full_system_integration_tests, test_error_handling_recovery)
 /**
  * @brief Test system performance under load
  */
-TEST(full_system_integration_tests, test_system_performance)
-{
+TEST(full_system_integration_tests, test_system_performance) {
     // Start multiple operations simultaneously
     wifi_manager_connect("TestSSID", "TestPassword");
     pump_controller_start_pump(PUMP_MODE_NORMAL);
@@ -285,8 +259,7 @@ TEST(full_system_integration_tests, test_system_performance)
 }
 
 // Test group runner
-TEST_GROUP_RUNNER(full_system_integration_tests)
-{
+TEST_GROUP_RUNNER(full_system_integration_tests) {
     RUN_TEST_CASE(full_system_integration_tests, test_system_initialization);
     RUN_TEST_CASE(full_system_integration_tests, test_wifi_pump_integration);
     RUN_TEST_CASE(full_system_integration_tests, test_price_scheduling_integration);

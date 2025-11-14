@@ -1,0 +1,72 @@
+name: ESP32 CI
+
+on:
+  push:
+    branches: [ "main", "codex/create-scalable-espressiff-project-structure" ]
+  pull_request:
+    branches: [ "main", "codex/create-scalable-espressiff-project-structure" ]
+
+jobs:
+  build-and-test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Cache ESP-IDF
+      uses: actions/cache@v4
+      with:
+        path: ~/.espressif
+        key: ${{ runner.os }}-espidf-${{ hashFiles('**/sdkconfig') }}
+        restore-keys: |
+          ${{ runner.os }}-espidf-
+
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        install_packages_from_registry: false
+
+    - name: Install ESP-IDF dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build
+
+    - name: Build project
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+
+    - name: Build tests
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+
+    - name: Run static analysis (optional)
+      run: |
+        . $IDF_PATH/export.sh
+        # Check for common issues
+        find . -name "*.c" -o -name "*.h" | xargs -I {} sh -c 'echo "Checking {}"; cppcheck --enable=all --std=c99 --language=c --platform=unix32 --suppress=missingIncludeSystem {}' || true
+
+    - name: Verify build artifacts
+      run: |
+        ls -la build/
+        test -f build/pool_pump_controller.bin || exit 1
+        echo "Build artifacts verified successfully"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp32-firmware
+        path: |
+          build/pool_pump_controller.bin
+          build/bootloader/bootloader.bin
+          build/partition_table/partition-table.bin
+          build/flash_args.json

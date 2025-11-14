@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Cache ESP-IDF
+      uses: actions/cache@v4
+      with:
+        path: ~/.espressif
+        key: ${{ runner.os }}-espidf-${{ hashFiles('**/sdkconfig') }}
+        restore-keys: |
+          ${{ runner.os }}-espidf-
+
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        install_packages_from_registry: false
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build
+
+    - name: Build release firmware
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+
+    - name: Create release archive
+      run: |
+        mkdir release-artifacts
+        cp build/pool_pump_controller.bin release-artifacts/
+        cp build/bootloader/bootloader.bin release-artifacts/
+        cp build/partition_table/partition-table.bin release-artifacts/
+        cp build/flash_args.json release-artifacts/
+        cp README.md release-artifacts/
+        cp sdkconfig release-artifacts/
+
+        # Create flash script
+        cat > release-artifacts/flash.sh << 'EOF'
+        #!/bin/bash
+        echo "Flashing ESP32 Pool Pump Controller..."
+        echo "Make sure your ESP32 is connected and in flash mode"
+        python -m esptool --chip esp32 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 2MB --flash_freq 40m @flash_args
+        echo "Flash complete!"
+        EOF
+        chmod +x release-artifacts/flash.sh
+
+        # Create archive
+        tar -czf esp32-pool-pump-controller-${GITHUB_REF#refs/tags/}.tar.gz release-artifacts/
+
+    - name: Generate release notes
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        echo "# ESP32 Pool Pump Controller ${TAG_NAME}" > release-notes.md
+        echo "" >> release-notes.md
+        echo "## What's New" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "### Features" >> release-notes.md
+        echo "- WiFi connectivity management" >> release-notes.md
+        echo "- Electricity price-based pump scheduling" >> release-notes.md
+        echo "- Relay control for pump management" >> release-notes.md
+        echo "- Persistent configuration storage" >> release-notes.md
+        echo "- Comprehensive testing framework" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "### Technical Details" >> release-notes.md
+        echo "- ESP32 microcontroller platform" >> release-notes.md
+        echo "- ESP-IDF v5.1.2 framework" >> release-notes.md
+        echo "- Modular component architecture" >> release-notes.md
+        echo "- Unit and integration tests included" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "## Installation" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "1. Download the firmware archive" >> release-notes.md
+        echo "2. Extract the files" >> release-notes.md
+        echo "3. Run \`./flash.sh\` to flash to your ESP32" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "## Hardware Requirements" >> release-notes.md
+        echo "- ESP32 development board" >> release-notes.md
+        echo "- LilyGO T-Relay board (optional)" >> release-notes.md
+        echo "- AquaForte Vario+ II inverter (optional)" >> release-notes.md
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        name: ESP32 Pool Pump Controller ${{ github.ref }}
+        body_path: release-notes.md
+        draft: false
+        prerelease: false
+        files: |
+          esp32-pool-pump-controller-${{ github.ref }}.tar.gz

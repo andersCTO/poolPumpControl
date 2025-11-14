@@ -43,7 +43,7 @@ jobs:
     - name: Build and verify tests
       run: |
         # Source ESP-IDF environment
-        . $IDF_PATH/export.sh
+        . ~/esp/esp-idf/export.sh
 
         # Build the project with tests
         idf.py build
@@ -58,7 +58,7 @@ jobs:
     - name: Test configuration validation
       run: |
         # Source ESP-IDF environment
-        . $IDF_PATH/export.sh
+        . ~/esp/esp-idf/export.sh
 
         # Validate that test configuration is correct
         idf.py --list-components | grep unity || exit 1

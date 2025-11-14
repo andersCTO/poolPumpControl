@@ -40,12 +40,12 @@ jobs:
 
     - name: Build project
       run: |
-        . $IDF_PATH/export.sh
+        . ~/esp/esp-idf/export.sh
         idf.py build
 
     - name: Build tests
       run: |
-        . $IDF_PATH/export.sh
+        . ~/esp/esp-idf/export.sh
         idf.py build
 
     - name: Run static analysis (optional)

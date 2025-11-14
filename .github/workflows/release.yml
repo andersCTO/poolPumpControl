@@ -38,7 +38,7 @@ jobs:
 
     - name: Build release firmware
       run: |
-        . $IDF_PATH/export.sh
+        . ~/esp/esp-idf/export.sh
         idf.py build
 
     - name: Create release archive

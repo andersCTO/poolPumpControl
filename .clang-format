@@ -1,0 +1,12 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+ColumnLimit: 120
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: true
+IndentCaseLabels: true
+BinPackParameters: false
+BinPackArguments: false
+AlignAfterOpenBracket: Align
+SpaceAfterCStyleCast: false
+SortIncludes: true

@@ -1,5 +1,9 @@
 # Pool Pump Controller using LilyGO T-Relay ESP32
 
+[![ESP32 CI](https://github.com/andersCTO/poolPumpControl/actions/workflows/esp32-ci.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/esp32-ci.yml)
+[![Quality Checks](https://github.com/andersCTO/poolPumpControl/actions/workflows/quality-checks.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/quality-checks.yml)
+[![Test Suite](https://github.com/andersCTO/poolPumpControl/actions/workflows/test-suite.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/test-suite.yml)
+
 This project automates the control of a pool circulation pump and heater to minimize electricity costs while maintaining proper water quality and temperature. It uses a [LilyGO T-Relay ESP32 module](https://github.com/Xinyuan-LilyGO/LilyGo-T-Relay) and connects to an **AquaForte VARIO+ II** (model Vario+ 1100) frequency inverter via digital output.
 
 ## Project Goals
@@ -91,6 +95,52 @@ poolPumpControl/
 ```
 
 Each component exposes public headers under `include/pool_pump/` so that functionality can be shared without tight coupling. This structure scales with additional features such as heater control or OTA updates by adding dedicated components.
+
+---
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+### Workflows
+
+- **ESP32 CI** (`esp32-ci.yml`): Builds the project and verifies compilation
+- **Quality Checks** (`quality-checks.yml`): Runs static analysis, formatting checks, and code quality validation
+- **Test Suite** (`test-suite.yml`): Validates test compilation and structure (tests run on hardware)
+- **Release** (`release.yml`): Creates automated releases with firmware binaries
+
+### Quality Assurance
+
+- **Code Formatting**: Enforced via clang-format with LLVM style
+- **Static Analysis**: cppcheck for common C/C++ issues
+- **Build Verification**: Ensures all components compile successfully
+- **Test Validation**: Verifies test framework integrity
+
+### Building Locally
+
+```bash
+# Setup ESP-IDF environment
+source ~/esp/esp-idf/export.sh
+
+# Build the project
+idf.py build
+
+# Flash to ESP32
+idf.py flash
+
+# Monitor serial output
+idf.py monitor
+```
+
+### Running Tests
+
+Tests are designed to run on ESP32 hardware. After flashing:
+
+```bash
+idf.py monitor
+```
+
+Test results will be displayed in the serial console.
 
 ---
 

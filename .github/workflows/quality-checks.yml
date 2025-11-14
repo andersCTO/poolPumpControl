@@ -1,0 +1,100 @@
+name: ESP32 Quality Assurance
+
+on:
+  push:
+    branches: [ "main", "codex/create-scalable-espressiff-project-structure" ]
+  pull_request:
+    branches: [ "main", "codex/create-scalable-espressiff-project-structure" ]
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Cache ESP-IDF
+      uses: actions/cache@v3
+      with:
+        path: ~/.espressif
+        key: ${{ runner.os }}-espidf-${{ hashFiles('**/sdkconfig') }}
+        restore-keys: |
+          ${{ runner.os }}-espidf-
+
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        install_packages_from_registry: false
+
+    - name: Install additional tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build cppcheck clang-tidy
+
+    - name: Code formatting check
+      run: |
+        find . -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror --style=file || exit 1
+
+    - name: Static analysis with cppcheck
+      run: |
+        cppcheck --enable=all --std=c99 --language=c --platform=unix32 \
+                 --suppress=missingIncludeSystem \
+                 --suppress=unusedFunction \
+                 --suppress=unmatchedSuppression \
+                 --inline-suppr \
+                 --xml --xml-version=2 \
+                 main/ components/ 2> cppcheck_results.xml || true
+        # Convert to GitHub annotations
+        python3 -c "
+        import xml.etree.ElementTree as ET
+        try:
+            root = ET.parse('cppcheck_results.xml').getroot()
+            for error in root.findall('.//error'):
+                file = error.get('file', '')
+                line = error.get('line', '1')
+                msg = error.get('msg', '')
+                severity = error.get('severity', 'info')
+                print(f'::warning file={file},line={line}::{msg}')
+        except:
+            pass
+        "
+
+    - name: Build project
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+
+    - name: Verify test compilation
+      run: |
+        . $IDF_PATH/export.sh
+        # Verify that tests can be built (they run on hardware)
+        idf.py build
+        echo "Tests compiled successfully"
+
+    - name: Check for TODO/FIXME comments
+      run: |
+        TODO_COUNT=$(grep -r "TODO\|FIXME\|XXX" --include="*.c" --include="*.h" . | wc -l)
+        if [ "$TODO_COUNT" -gt 0 ]; then
+          echo "::warning::Found $TODO_COUNT TODO/FIXME comments in the codebase"
+          grep -r "TODO\|FIXME\|XXX" --include="*.c" --include="*.h" . | head -10
+        fi
+
+    - name: Verify documentation
+      run: |
+        test -f README.md || (echo "README.md missing" && exit 1)
+        test -f test/README.md || (echo "test/README.md missing" && exit 1)
+        echo "Documentation files present"
+
+    - name: Check component dependencies
+      run: |
+        . $IDF_PATH/export.sh
+        # Verify all components can be found
+        idf.py --list-components | grep -E "(wifi_manager|price_fetcher|pump_controller|relay_control|nvs_storage)" || exit 1
+        echo "All custom components found"

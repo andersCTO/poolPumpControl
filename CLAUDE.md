@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ESP32 pool pump controller firmware (C99, ESP-IDF v5.1.2) for a LilyGO T-Relay board controlling an AquaForte VARIO+ II inverter. The core optimization problem: circulate a required volume of pool water every 24 hours at the lowest possible electricity cost, using Nordpool spot prices to schedule pump operation in the cheapest hours. The pump has multiple speed modes with different power draws and flow rates, so the scheduler must choose both *when* and *at what speed* to run.
+ESP32 pool pump controller firmware (C99, ESP-IDF v5.4) for a LilyGO T-Relay board (ESP32, 4MB flash) controlling an AquaForte VARIO+ II inverter. The core optimization problem: circulate a required volume of pool water every 24 hours at the lowest possible electricity cost, using Nordpool spot prices to schedule pump operation in the cheapest hours. The pump has multiple speed modes with different power draws and flow rates, so the scheduler must choose both *when* and *at what speed* to run.
 
 ## Build Commands
 
-Requires ESP-IDF v5.1.2 environment (`. $IDF_PATH/export.sh` or equivalent).
+Requires ESP-IDF v5.4 environment. The ESP-IDF installation is at `~/esp/v5.4/esp-idf/`.
 
 ```bash
+source ~/esp/v5.4/esp-idf/export.sh   # Activate ESP-IDF environment
 idf.py build              # Build firmware
 idf.py flash              # Flash to connected ESP32
 idf.py monitor            # Serial monitor (exit: Ctrl+])
@@ -18,6 +19,21 @@ idf.py flash monitor      # Flash and immediately monitor
 idf.py menuconfig         # Configure project settings (WiFi SSID, API endpoint)
 idf.py fullclean          # Clean build directory completely
 ```
+
+### Development environment
+
+Development runs in WSL2 (Ubuntu) on Windows. The ESP32 is connected via USB (CH9102 serial chip, COM3 on Windows). USB passthrough to WSL via `usbipd` requires firewall port 3240 open. If USB passthrough doesn't work, flash directly from Windows PowerShell:
+
+```powershell
+# Install esptool on Windows: pip install esptool pyserial
+# Erase flash (if needed): python -m esptool --chip esp32 -p COM3 erase_flash
+python -m esptool --chip esp32 -p COM3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 4MB --flash_freq 40m 0x1000 \\wsl$\Ubuntu\home\ankullen\development\poolPumpControl\build\bootloader\bootloader.bin 0x8000 \\wsl$\Ubuntu\home\ankullen\development\poolPumpControl\build\partition_table\partition-table.bin 0x10000 \\wsl$\Ubuntu\home\ankullen\development\poolPumpControl\build\pool_pump_controller.bin
+# Monitor: python -m serial.tools.miniterm COM3 115200
+```
+
+### Build defaults (`sdkconfig.defaults`)
+
+Key defaults: 4MB flash, Bluetooth enabled (Bluedroid, BLE-only, GATTS). When sdkconfig needs regeneration, delete it and run `idf.py build` to recreate from defaults.
 
 ## Code Quality
 
@@ -110,7 +126,7 @@ API schema defined in the `api/` submodule (poolPumpControl-api).
 ## CI/CD
 
 Five GitHub Actions workflows:
-- **esp32-ci.yml**: Build validation with ESP-IDF v5.1.2
+- **esp32-ci.yml**: Build validation with ESP-IDF
 - **quality-checks.yml**: clang-format + cppcheck + documentation presence
 - **test-suite.yml**: Test structure validation (daily + on push/PR)
 - **host-tests.yml**: Host-based unit tests with cmake + gcc (no ESP-IDF required)
@@ -118,4 +134,10 @@ Five GitHub Actions workflows:
 
 ## Key Configuration
 
-Global constants in `include/config.h`. Project-level Kconfig options in `Kconfig.projbuild` (WiFi SSID, API endpoint). Runtime SDK config in `sdkconfig`.
+Global constants in `include/config.h`. Project-level Kconfig options in `Kconfig.projbuild` (WiFi SSID, API endpoint). Runtime SDK config in `sdkconfig`. Build defaults in `sdkconfig.defaults`.
+
+## Known Issues
+
+- **Duplicate relay init**: `relay_control_init()` is called both in `app_main.c` and inside `pump_controller_init()`, causing GPIOs to be initialized twice. Harmless but should be cleaned up.
+- **WiFi event loop**: `wifi_manager_init()` logs `ESP_ERR_INVALID_STATE` because the default event loop is already created by the BT stack before WiFi init. WiFi still works once credentials are configured via BLE.
+- **WiFi credentials**: Must be configured via BLE (service 0x00FF, characteristics 0xFF01/0xFF02) before WiFi will connect. No default credentials are set.

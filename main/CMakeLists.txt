@@ -16,6 +16,8 @@ idf_component_register(
         nvs_flash
         esp_wifi
         esp_http_client
+        esp_http_server
         json
         driver
+        web_server
 )

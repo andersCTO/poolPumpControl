@@ -11,6 +11,7 @@
 #include "price_fetcher.h"
 #include "pump_controller.h"
 #include "relay_control.h"
+#include "web_server.h"
 #include "wifi_manager.h"
 
 static const char *TAG = "POOL_PUMP_MAIN";
@@ -36,6 +37,7 @@ void app_main(void) {
     relay_control_init();
     pump_controller_init();
     price_fetcher_init();
+    web_server_init();
 
     ESP_LOGI(TAG, "Pool Pump Controller initialized successfully");
 

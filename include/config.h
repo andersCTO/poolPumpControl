@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdbool.h>
+
 // WiFi Configuration
 #define WIFI_SSID_MAX_LEN 32
 #define WIFI_PASSWORD_MAX_LEN 64
@@ -39,8 +41,16 @@
 #define NVS_KEY_PUMP_MODE "pump_mode"
 #define NVS_KEY_SCHEDULE "schedule"
 
+// Scheduler status
+typedef struct {
+    bool pump_running;
+    int daily_runtime_minutes;
+    int current_hour;
+} scheduler_status_t;
+
 // Function declarations
 void config_init(void);
 void pump_scheduler_task(void *pvParameters);
+void pump_scheduler_get_status(scheduler_status_t *status);
 
 #endif // CONFIG_H

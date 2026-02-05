@@ -12,6 +12,10 @@
 
 static const char *TAG = "PUMP_SCHEDULER";
 
+static bool s_pump_running = false;
+static int s_daily_runtime_minutes = 0;
+static int s_current_hour = -1;
+
 static bool is_within_operating_hours(void) {
     time_t now;
     struct tm timeinfo;
@@ -48,8 +52,6 @@ void pump_scheduler_task(void *pvParameters) {
     TickType_t last_wake_time = xTaskGetTickCount();
     const TickType_t frequency = pdMS_TO_TICKS(60000); // Run every minute
 
-    bool pump_running = false;
-    int daily_runtime_minutes = 0;
     int last_hour = -1;
 
     while (1) {
@@ -60,61 +62,62 @@ void pump_scheduler_task(void *pvParameters) {
 
         // Reset daily counter at midnight
         if (timeinfo.tm_hour == 0 && last_hour == 23) {
-            daily_runtime_minutes = 0;
+            s_daily_runtime_minutes = 0;
             ESP_LOGI(TAG, "New day started, resetting runtime counter");
         }
         last_hour = timeinfo.tm_hour;
+        s_current_hour = timeinfo.tm_hour;
 
         // Check if we're within operating hours
         if (!is_within_operating_hours()) {
-            if (pump_running) {
+            if (s_pump_running) {
                 ESP_LOGI(TAG, "Outside operating hours, stopping pump");
                 pump_controller_stop();
-                pump_running = false;
+                s_pump_running = false;
             }
         } else {
             // Check if we've reached minimum daily runtime
             int min_runtime_minutes = MIN_DAILY_RUNTIME_HOURS * 60;
             int max_runtime_minutes = MAX_DAILY_RUNTIME_HOURS * 60;
 
-            if (daily_runtime_minutes < min_runtime_minutes) {
+            if (s_daily_runtime_minutes < min_runtime_minutes) {
                 // Must run to meet minimum requirements
-                if (!pump_running) {
+                if (!s_pump_running) {
                     pump_mode_t mode = determine_optimal_mode();
                     ESP_LOGI(TAG,
                              "Starting pump to meet minimum runtime (%d/%d min)",
-                             daily_runtime_minutes,
+                             s_daily_runtime_minutes,
                              min_runtime_minutes);
                     pump_controller_set_mode(mode);
                     pump_controller_start();
-                    pump_running = true;
+                    s_pump_running = true;
                 }
-            } else if (daily_runtime_minutes >= max_runtime_minutes) {
+            } else if (s_daily_runtime_minutes >= max_runtime_minutes) {
                 // Reached maximum, stop for today
-                if (pump_running) {
+                if (s_pump_running) {
                     ESP_LOGI(TAG, "Maximum daily runtime reached, stopping pump");
                     pump_controller_stop();
-                    pump_running = false;
+                    s_pump_running = false;
                 }
             } else {
                 // Optional operation based on electricity prices
-                if (price_fetcher_is_low_price_period() && !pump_running) {
+                if (price_fetcher_is_low_price_period() && !s_pump_running) {
                     pump_mode_t mode = determine_optimal_mode();
                     ESP_LOGI(TAG, "Low price period detected, starting pump");
                     pump_controller_set_mode(mode);
                     pump_controller_start();
-                    pump_running = true;
-                } else if (!price_fetcher_is_low_price_period() && pump_running) {
+                    s_pump_running = true;
+                } else if (!price_fetcher_is_low_price_period() && s_pump_running) {
                     ESP_LOGI(TAG, "Price increased, stopping optional operation");
                     pump_controller_stop();
-                    pump_running = false;
+                    s_pump_running = false;
                 }
             }
         }
 
         // Update runtime counter
-        if (pump_running) {
-            daily_runtime_minutes++;
+        if (s_pump_running) {
+            s_daily_runtime_minutes++;
         }
 
         // Log status every 15 minutes
@@ -125,12 +128,21 @@ void pump_scheduler_task(void *pvParameters) {
             pump_controller_get_status(&status);
             ESP_LOGI(TAG,
                      "Status: %s, Mode: %d, Runtime today: %d min, Price: %.3f EUR/kWh",
-                     pump_running ? "RUNNING" : "STOPPED",
+                     s_pump_running ? "RUNNING" : "STOPPED",
                      status.mode,
-                     daily_runtime_minutes,
+                     s_daily_runtime_minutes,
                      price_fetcher_get_current_price());
         }
 
         vTaskDelayUntil(&last_wake_time, frequency);
     }
+}
+
+void pump_scheduler_get_status(scheduler_status_t *status) {
+    if (status == NULL) {
+        return;
+    }
+    status->pump_running = s_pump_running;
+    status->daily_runtime_minutes = s_daily_runtime_minutes;
+    status->current_hour = s_current_hour;
 }

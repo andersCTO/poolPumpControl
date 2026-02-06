@@ -1,0 +1,19 @@
+# Local configuration overrides (not committed to git)
+# Copy this file to sdkconfig.local and fill in your values
+#
+# Usage:
+#   cp sdkconfig.local.example sdkconfig.local
+#   # Edit sdkconfig.local with your credentials
+#   cat sdkconfig.defaults sdkconfig.local > sdkconfig.combined
+#   cp sdkconfig.combined sdkconfig.defaults
+#   rm sdkconfig sdkconfig.combined
+#   idf.py build
+#
+# Or simply use: idf.py menuconfig
+
+# WiFi credentials
+CONFIG_POOL_PUMP_WIFI_SSID="YourWiFiNetwork"
+CONFIG_POOL_PUMP_WIFI_PASSWORD="YourWiFiPassword"
+
+# Price API region (DK1, DK2, SE1-SE4, NO1-NO5, FI, EE, LT, LV)
+CONFIG_POOL_PUMP_PRICE_REGION="DK1"

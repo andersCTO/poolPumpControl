@@ -149,10 +149,23 @@ Five GitHub Actions workflows:
 
 ## Key Configuration
 
-Global constants in `include/config.h`. Project-level Kconfig options in `Kconfig.projbuild` (WiFi SSID, API endpoint). Runtime SDK config in `sdkconfig`. Build defaults in `sdkconfig.defaults`.
+Global constants in `include/config.h`. Project-level Kconfig options in `Kconfig.projbuild`. Build defaults in `sdkconfig.defaults`.
+
+### WiFi credentials
+
+Two options for configuring WiFi:
+
+**Option 1: Build-time configuration (for development)**
+```bash
+cp sdkconfig.local.example sdkconfig.local
+# Edit sdkconfig.local with your SSID and password
+idf.py menuconfig  # Or manually merge into sdkconfig.defaults
+```
+
+**Option 2: BLE provisioning (for production)**
+Connect via BLE (service 0x00FF) and write credentials to characteristics 0xFF01 (SSID) and 0xFF02 (password).
 
 ## Known Issues
 
 - **Duplicate relay init**: `relay_control_init()` is called both in `app_main.c` and inside `pump_controller_init()`, causing GPIOs to be initialized twice. Harmless but should be cleaned up.
-- **WiFi event loop**: `wifi_manager_init()` logs `ESP_ERR_INVALID_STATE` because the default event loop is already created by the BT stack before WiFi init. WiFi still works once credentials are configured via BLE.
-- **WiFi credentials**: Must be configured via BLE (service 0x00FF, characteristics 0xFF01/0xFF02) before WiFi will connect. No default credentials are set.
+- **WiFi event loop**: `wifi_manager_init()` logs `ESP_ERR_INVALID_STATE` because the default event loop is already created by the BT stack before WiFi init. WiFi still works once credentials are configured.

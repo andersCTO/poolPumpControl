@@ -86,6 +86,9 @@ esp_err_t wifi_manager_init(void) {
         return ret;
     }
 
+    // Reduce WiFi driver log verbosity (suppress CSA spam)
+    esp_log_level_set("wifi", ESP_LOG_WARN);
+
     // Register event handlers
     esp_event_handler_instance_t wifi_handler;
     esp_event_handler_instance_t ip_handler;

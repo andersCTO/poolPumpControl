@@ -20,4 +20,9 @@ typedef enum {
 #define ESP_LOGD(tag, fmt, ...) (void)(tag)
 #define ESP_LOGV(tag, fmt, ...) (void)(tag)
 
+static inline void esp_log_level_set(const char *tag, esp_log_level_t level) {
+    (void)tag;
+    (void)level;
+}
+
 #endif // MOCK_ESP_LOG_H

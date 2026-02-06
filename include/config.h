@@ -9,7 +9,7 @@
 
 // Pump Speed Settings (RPM) - actual speeds from inverter digital inputs
 // These are the fixed speeds when DI2/3/4 are connected to COM (per manual)
-#define PUMP_SPEED_NIGHT 1200    // DI4 → COM (Low speed)
+#define PUMP_SPEED_NIGHT 1400    // DI4 → COM (Low speed)
 #define PUMP_SPEED_DAY 2400      // DI3 → COM (Medium speed)
 #define PUMP_SPEED_BACKWASH 2900 // DI2 → COM (High speed)
 
@@ -46,12 +46,12 @@
 
 // Pool Configuration
 #define POOL_VOLUME_LITERS 60000
-#define POOL_CIRCULATION_FACTOR 2
+#define POOL_CIRCULATION_FACTOR 1  // 1x turnover per day (60,000 L target)
 
-// Pump Flow Rates (liters per hour)
-#define PUMP_FLOW_NIGHT_LPH 5600
+// Pump Flow Rates (liters per hour) - conservative estimates assuming ~4m head
+#define PUMP_FLOW_NIGHT_LPH 5000
 #define PUMP_FLOW_DAY_LPH 8000
-#define PUMP_FLOW_BACKWASH_LPH 14400
+#define PUMP_FLOW_BACKWASH_LPH 12000
 
 // Pump Power Consumption (watts)
 #define PUMP_POWER_NIGHT_W 88

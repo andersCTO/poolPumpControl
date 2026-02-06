@@ -63,9 +63,9 @@
 #define MAX_DAILY_RUNTIME_HOURS 12
 #define BACKWASH_DURATION_MINUTES 10
 
-// Operating hours for pump scheduling
-#define PUMP_OP_START_HOUR 6
-#define PUMP_OP_END_HOUR 22
+// Operating hours for pump scheduling (0-24 for 24/7 operation)
+#define PUMP_OP_START_HOUR 0
+#define PUMP_OP_END_HOUR 24
 
 // NVS Storage Keys
 #define NVS_NAMESPACE "pool_pump"

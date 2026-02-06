@@ -51,7 +51,7 @@
 
 // Pool Configuration
 #define POOL_VOLUME_LITERS 60000
-#define POOL_CIRCULATION_FACTOR 1  // 1x turnover per day (60,000 L target)
+#define POOL_CIRCULATION_FACTOR 3  // 3x turnover per day (180,000 L target) - needed for heating
 
 // Pump Flow Rates (liters per hour) - conservative estimates assuming ~4m head
 #define PUMP_FLOW_NIGHT_LPH 5000

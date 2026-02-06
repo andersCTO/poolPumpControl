@@ -142,17 +142,19 @@ Based on empirical power measurements and conservative flow estimates (~4m head)
 | Parameter | Value |
 |-----------|-------|
 | Pool Volume | 60,000 L (60 m³) |
-| Configured Circulation | 1x per day (60,000 L target) |
+| Configured Circulation | 3x per day (180,000 L target) |
 
 **Circulation guidelines:**
-- 1x turnover: Normal operation, good chemical balance (current setting)
-- 1.5x turnover: Heavy use, hot weather
-- 2x turnover: Very heavy use, algae prevention
+- 1x turnover: Minimum for chemical balance
+- 2x turnover: Normal operation
+- 3x turnover: Required for heating system (current setting)
+- 4x turnover: Heavy use, very hot weather
 
-**Runtime estimates at 1x turnover (60,000 L/day):**
-- Low speed only: 60,000 / 5,000 = 12 hours
-- High speed only: 60,000 / 12,000 = 5 hours
-- Mixed (optimizer): Typically 6-10 hours depending on price optimization
+**Runtime estimates at 3x turnover (180,000 L/day):**
+- Max LOW capacity: 96 slots × 1,250 L = 120,000 L (insufficient)
+- Shortfall: 60,000 L → requires ~35 HIGH upgrades
+- Expected schedule: ~61 LOW slots + ~35 HIGH slots (24h runtime)
+- The optimizer picks cheapest slots for HIGH upgrades
 
 ---
 

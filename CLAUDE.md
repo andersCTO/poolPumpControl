@@ -106,6 +106,16 @@ Each component has its own `CMakeLists.txt` and exposes headers under `include/p
 
 ### Hardware mapping
 
+**LilyGO T-Relay 4-channel board** ([official repo](https://github.com/Xinyuan-LilyGO/LilyGo-T-Relay)):
+
+| GPIO | Function |
+|------|----------|
+| 21 | Relay 1 |
+| 19 | Relay 2 |
+| 18 | Relay 3 |
+| 5 | Relay 4 |
+| 25 | Status LED |
+
 Relay GPIOs control the AquaForte Vario+ inverter's digital inputs. Per the RB344 Vario manual (Section 5.4), connecting a digital input to COM triggers a **fixed speed**:
 
 | Relay | GPIO | Inverter DI | Speed | Mode |
@@ -115,7 +125,7 @@ Relay GPIOs control the AquaForte Vario+ inverter's digital inputs. Per the RB34
 | Relay 3 | 18 | DI4 → COM | 1200 rpm | Night (Low) |
 | Relay 4 | 5 | — | — | Available |
 
-**Important**: Only one digital input should be active at a time. The inverter manual (`docs/rb344-vario-manual.pdf`) is the authoritative reference for speed/DI mapping.
+**Important**: Only one digital input should be active at a time. The inverter manual (`docs/rb344-vario-manual.pdf`) is the authoritative reference for speed/DI mapping. Board pinout in `docs/Lilygo t-relay esp32 pinmap.jpg`.
 
 ### BLE interface (`components/bluetooth_config/`)
 

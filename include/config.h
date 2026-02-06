@@ -13,11 +13,12 @@
 #define PUMP_SPEED_DAY 2400      // DI3 → COM (Medium speed)
 #define PUMP_SPEED_BACKWASH 2900 // DI2 → COM (High speed)
 
-// Relay Pin Configuration for LilyGO T-Relay
+// LilyGO T-Relay Pin Configuration (https://github.com/Xinyuan-LilyGO/LilyGo-T-Relay)
 #define RELAY_1_PIN 21
 #define RELAY_2_PIN 19
 #define RELAY_3_PIN 18
 #define RELAY_4_PIN 5
+#define STATUS_LED_PIN 25
 
 // Digital Input Pins for Inverter Control (from RB344 Vario manual Section 5.4)
 // When digital input is connected to COM, it triggers a fixed speed:

@@ -2,6 +2,7 @@ build/
 sdkconfig
 sdkconfig.old
 sdkconfig.local
+sdkconfig.defaults
 .sdkconfig*
 *.pyc
 .vscode/

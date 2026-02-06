@@ -51,6 +51,7 @@ void app_main(void) {
 
     ESP_LOGI(TAG, "Pool Pump Controller initialized successfully");
 
-    // Start main application task
+    // Start main application tasks
     xTaskCreate(&pump_scheduler_task, "pump_scheduler", 4096, NULL, 5, NULL);
+    xTaskCreate(&price_refresh_task, "price_refresh", 4096, NULL, 4, NULL);
 }

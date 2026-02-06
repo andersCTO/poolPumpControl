@@ -39,6 +39,12 @@ esp_err_t httpd_resp_set_type(httpd_req_t *r, const char *type) {
     return ESP_OK;
 }
 
+esp_err_t httpd_resp_set_status(httpd_req_t *r, const char *status) {
+    (void)r;
+    (void)status;
+    return ESP_OK;
+}
+
 esp_err_t httpd_resp_send(httpd_req_t *r, const char *buf, int buf_len) {
     size_t len = buf_len > 0 ? (size_t)buf_len : strlen(buf);
     if (len >= sizeof(last_response)) {

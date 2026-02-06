@@ -3,6 +3,8 @@
 #include "config.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include <string.h>
 
 static const char *TAG = "PRICE_FETCHER";
@@ -10,7 +12,21 @@ static const char *TAG = "PRICE_FETCHER";
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 
 static price_data_t daily_prices[24];
+static price_data_t tomorrow_prices[24];
 static float current_price = 0.0f;
+
+// State tracking
+static price_refresh_state_t s_refresh_state = {
+    .status = PRICE_FETCH_STATUS_IDLE,
+    .last_fetch_time = 0,
+    .last_attempt_time = 0,
+    .consecutive_failures = 0,
+    .cached_day = 0,
+    .tomorrow_available = false,
+};
+
+// Mutex for thread-safe access to price data and state
+static SemaphoreHandle_t s_price_mutex = NULL;
 
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
     static char *output_buffer;
@@ -91,8 +107,20 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt) {
 
 esp_err_t price_fetcher_init(void) {
     ESP_LOGI(TAG, "Initializing price fetcher");
-    // Initialize daily prices to zero
+
+    // Create mutex for thread-safe access
+    if (s_price_mutex == NULL) {
+        s_price_mutex = xSemaphoreCreateMutex();
+        if (s_price_mutex == NULL) {
+            ESP_LOGE(TAG, "Failed to create price mutex");
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    // Initialize price arrays to zero
     memset(daily_prices, 0, sizeof(daily_prices));
+    memset(tomorrow_prices, 0, sizeof(tomorrow_prices));
+
     return ESP_OK;
 }
 
@@ -139,4 +167,120 @@ float price_fetcher_get_current_price(void) {
 bool price_fetcher_is_low_price_period(void) {
     float current = price_fetcher_get_current_price();
     return (current > 0 && current < PRICE_THRESHOLD_LOW);
+}
+
+bool price_fetcher_is_data_valid(void) {
+    if (s_price_mutex == NULL) {
+        return false;
+    }
+
+    bool valid = false;
+    if (xSemaphoreTake(s_price_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        // Data is valid if we have a successful fetch within the stale threshold
+        if (s_refresh_state.last_fetch_time > 0) {
+            time_t now;
+            time(&now);
+            time_t age_hours = (now - s_refresh_state.last_fetch_time) / 3600;
+            valid = (age_hours < PRICE_STALE_THRESHOLD_HOURS);
+        }
+        xSemaphoreGive(s_price_mutex);
+    }
+    return valid;
+}
+
+time_t price_fetcher_get_last_fetch_time(void) {
+    time_t fetch_time = 0;
+    if (s_price_mutex != NULL && xSemaphoreTake(s_price_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        fetch_time = s_refresh_state.last_fetch_time;
+        xSemaphoreGive(s_price_mutex);
+    }
+    return fetch_time;
+}
+
+void price_fetcher_get_refresh_state(price_refresh_state_t *state) {
+    if (state == NULL) {
+        return;
+    }
+
+    if (s_price_mutex != NULL && xSemaphoreTake(s_price_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        memcpy(state, &s_refresh_state, sizeof(price_refresh_state_t));
+        xSemaphoreGive(s_price_mutex);
+    } else {
+        memset(state, 0, sizeof(price_refresh_state_t));
+    }
+}
+
+esp_err_t price_fetcher_trigger_refresh(void) {
+    if (s_price_mutex == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (xSemaphoreTake(s_price_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        s_refresh_state.status = PRICE_FETCH_STATUS_FETCHING;
+        s_refresh_state.last_attempt_time = 0; // Reset to trigger immediate fetch
+        xSemaphoreGive(s_price_mutex);
+    }
+
+    return ESP_OK;
+}
+
+// Internal function to update state after fetch attempt
+void price_fetcher_update_state(bool success) {
+    if (s_price_mutex == NULL) {
+        return;
+    }
+
+    time_t now;
+    time(&now);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+
+    if (xSemaphoreTake(s_price_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        s_refresh_state.last_attempt_time = now;
+
+        if (success) {
+            s_refresh_state.status = PRICE_FETCH_STATUS_SUCCESS;
+            s_refresh_state.last_fetch_time = now;
+            s_refresh_state.consecutive_failures = 0;
+            s_refresh_state.cached_day = (uint8_t)timeinfo.tm_mday;
+            ESP_LOGI(TAG, "Price fetch successful, cached_day=%d", s_refresh_state.cached_day);
+        } else {
+            s_refresh_state.status = PRICE_FETCH_STATUS_FAILED;
+            if (s_refresh_state.consecutive_failures < 255) {
+                s_refresh_state.consecutive_failures++;
+            }
+            ESP_LOGW(TAG, "Price fetch failed, consecutive failures: %d", s_refresh_state.consecutive_failures);
+        }
+
+        xSemaphoreGive(s_price_mutex);
+    }
+}
+
+// Handle midnight rollover - move tomorrow's prices to today
+void price_fetcher_handle_midnight_rollover(void) {
+    if (s_price_mutex == NULL) {
+        return;
+    }
+
+    time_t now;
+    time(&now);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+
+    if (xSemaphoreTake(s_price_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        // Check if day has changed
+        if (s_refresh_state.cached_day != 0 && s_refresh_state.cached_day != (uint8_t)timeinfo.tm_mday) {
+            if (s_refresh_state.tomorrow_available) {
+                ESP_LOGI(TAG, "Midnight rollover: moving tomorrow's prices to today");
+                memcpy(daily_prices, tomorrow_prices, sizeof(daily_prices));
+                memset(tomorrow_prices, 0, sizeof(tomorrow_prices));
+                s_refresh_state.tomorrow_available = false;
+                s_refresh_state.cached_day = (uint8_t)timeinfo.tm_mday;
+            } else {
+                ESP_LOGW(TAG, "Midnight rollover: no tomorrow prices cached");
+                s_refresh_state.cached_day = (uint8_t)timeinfo.tm_mday;
+            }
+        }
+        xSemaphoreGive(s_price_mutex);
+    }
 }

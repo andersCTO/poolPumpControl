@@ -35,6 +35,12 @@
 #define PRICE_THRESHOLD_LOW 0.10  // EUR/kWh
 #define PRICE_THRESHOLD_HIGH 0.30 // EUR/kWh
 
+// Price Refresh Configuration
+#define PRICE_STALE_THRESHOLD_HOURS 3    // Data considered stale after this many hours
+#define PRICE_TOMORROW_AVAILABLE_HOUR 13 // Hour (CET) when next-day prices become available
+#define PRICE_FETCH_RETRY_BASE_SEC 30    // Initial retry delay on failure
+#define PRICE_FETCH_RETRY_MAX_MIN 60     // Maximum retry delay in minutes
+
 // Pump Operation Settings
 #define MIN_DAILY_RUNTIME_HOURS 4
 #define MAX_DAILY_RUNTIME_HOURS 12

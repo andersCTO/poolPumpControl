@@ -30,15 +30,17 @@ typedef struct {
 
 typedef struct {
     unsigned server_port;
+    size_t stack_size;
 } httpd_config_t;
 
 #define HTTPD_DEFAULT_CONFIG()                                                                                         \
-    { .server_port = 80 }
+    { .server_port = 80, .stack_size = 4096 }
 
 esp_err_t httpd_start(httpd_handle_t *handle, const httpd_config_t *config);
 esp_err_t httpd_stop(httpd_handle_t handle);
 esp_err_t httpd_register_uri_handler(httpd_handle_t handle, const httpd_uri_t *uri_handler);
 esp_err_t httpd_resp_set_type(httpd_req_t *r, const char *type);
+esp_err_t httpd_resp_set_status(httpd_req_t *r, const char *status);
 esp_err_t httpd_resp_send(httpd_req_t *r, const char *buf, int buf_len);
 
 // Test helpers

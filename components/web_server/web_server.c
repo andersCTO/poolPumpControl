@@ -69,6 +69,23 @@ static const char *mode_to_string(pump_mode_t mode) {
     }
 }
 
+static const char *fetch_status_to_string(price_fetch_status_t status) {
+    switch (status) {
+        case PRICE_FETCH_STATUS_IDLE:
+            return "idle";
+        case PRICE_FETCH_STATUS_FETCHING:
+            return "fetching";
+        case PRICE_FETCH_STATUS_SUCCESS:
+            return "success";
+        case PRICE_FETCH_STATUS_FAILED:
+            return "failed";
+        case PRICE_FETCH_STATUS_NO_WIFI:
+            return "no_wifi";
+        default:
+            return "unknown";
+    }
+}
+
 static esp_err_t dashboard_get_handler(httpd_req_t *req) {
     pump_status_t pump_status;
     pump_controller_get_status(&pump_status);
@@ -119,6 +136,12 @@ static esp_err_t dashboard_get_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+static esp_err_t favicon_get_handler(httpd_req_t *req) {
+    httpd_resp_set_status(req, "204 No Content");
+    httpd_resp_send(req, NULL, 0);
+    return ESP_OK;
+}
+
 static esp_err_t api_status_get_handler(httpd_req_t *req) {
     pump_status_t pump_status;
     pump_controller_get_status(&pump_status);
@@ -130,7 +153,12 @@ static esp_err_t api_status_get_handler(httpd_req_t *req) {
     bool is_low = price_fetcher_is_low_price_period();
     bool wifi_ok = wifi_manager_is_connected();
 
-    char buf[512];
+    // Get price refresh state
+    price_refresh_state_t refresh_state;
+    price_fetcher_get_refresh_state(&refresh_state);
+    bool price_valid = price_fetcher_is_data_valid();
+
+    char buf[768];
     int len = snprintf(buf,
                        sizeof(buf),
                        "{\"pump_running\":%s,"
@@ -140,7 +168,10 @@ static esp_err_t api_status_get_handler(httpd_req_t *req) {
                        "\"current_hour\":%d,"
                        "\"price_eur_kwh\":%.3f,"
                        "\"low_price_period\":%s,"
-                       "\"wifi_connected\":%s}",
+                       "\"wifi_connected\":%s,"
+                       "\"price_last_fetch\":%lld,"
+                       "\"price_fetch_status\":\"%s\","
+                       "\"price_data_valid\":%s}",
                        sched_status.pump_running ? "true" : "false",
                        mode_to_string(pump_status.mode),
                        pump_status.current_rpm,
@@ -148,7 +179,10 @@ static esp_err_t api_status_get_handler(httpd_req_t *req) {
                        sched_status.current_hour,
                        current_price,
                        is_low ? "true" : "false",
-                       wifi_ok ? "true" : "false");
+                       wifi_ok ? "true" : "false",
+                       (long long)refresh_state.last_fetch_time,
+                       fetch_status_to_string(refresh_state.status),
+                       price_valid ? "true" : "false");
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, buf, len);
@@ -165,6 +199,12 @@ static const httpd_uri_t uri_api_status = {
     .uri = "/api/status",
     .method = HTTP_GET,
     .handler = api_status_get_handler,
+};
+
+static const httpd_uri_t uri_favicon = {
+    .uri = "/favicon.ico",
+    .method = HTTP_GET,
+    .handler = favicon_get_handler,
 };
 
 esp_err_t web_server_init(void) {
@@ -185,6 +225,7 @@ esp_err_t web_server_init(void) {
 
     httpd_register_uri_handler(s_server, &uri_dashboard);
     httpd_register_uri_handler(s_server, &uri_api_status);
+    httpd_register_uri_handler(s_server, &uri_favicon);
 
     ESP_LOGI(TAG, "Web server started successfully");
     return ESP_OK;

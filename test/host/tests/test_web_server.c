@@ -24,7 +24,7 @@ TEST(web_server_tests, test_init_registers_handlers) {
     esp_err_t result = web_server_init();
     TEST_ASSERT_EQUAL(ESP_OK, result);
 
-    TEST_ASSERT_EQUAL(2, mock_httpd_get_registered_uri_count());
+    TEST_ASSERT_EQUAL(3, mock_httpd_get_registered_uri_count());
 
     const httpd_uri_t *dashboard = mock_httpd_get_registered_uri(0);
     TEST_ASSERT_NOT_NULL(dashboard);
@@ -35,6 +35,11 @@ TEST(web_server_tests, test_init_registers_handlers) {
     TEST_ASSERT_NOT_NULL(api);
     TEST_ASSERT_EQUAL_STRING("/api/status", api->uri);
     TEST_ASSERT_EQUAL(HTTP_GET, api->method);
+
+    const httpd_uri_t *favicon = mock_httpd_get_registered_uri(2);
+    TEST_ASSERT_NOT_NULL(favicon);
+    TEST_ASSERT_EQUAL_STRING("/favicon.ico", favicon->uri);
+    TEST_ASSERT_EQUAL(HTTP_GET, favicon->method);
 }
 
 TEST(web_server_tests, test_dashboard_handler_returns_html) {
@@ -79,6 +84,9 @@ TEST(web_server_tests, test_api_status_handler_returns_json) {
     TEST_ASSERT_NOT_NULL(strstr(response, "\"daily_runtime_minutes\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"price_eur_kwh\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"wifi_connected\""));
+    TEST_ASSERT_NOT_NULL(strstr(response, "\"price_last_fetch\""));
+    TEST_ASSERT_NOT_NULL(strstr(response, "\"price_fetch_status\""));
+    TEST_ASSERT_NOT_NULL(strstr(response, "\"price_data_valid\""));
 
     // Verify content type
     TEST_ASSERT_EQUAL_STRING("application/json", mock_httpd_get_last_content_type());

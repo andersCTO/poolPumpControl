@@ -11,6 +11,9 @@ static const char *TAG = "WIFI_MANAGER";
 static bool wifi_connected = false;
 static esp_netif_t *sta_netif = NULL;
 
+// Event group for WiFi connection events
+EventGroupHandle_t g_wifi_event_group = NULL;
+
 static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
     if (event_base == WIFI_EVENT) {
         switch (event_id) {
@@ -23,6 +26,10 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
             case WIFI_EVENT_STA_DISCONNECTED:
                 ESP_LOGW(TAG, "Disconnected from AP, reconnecting...");
                 wifi_connected = false;
+                if (g_wifi_event_group != NULL) {
+                    xEventGroupClearBits(g_wifi_event_group, WIFI_CONNECTED_BIT);
+                    xEventGroupSetBits(g_wifi_event_group, WIFI_DISCONNECTED_BIT);
+                }
                 esp_wifi_connect();
                 break;
             default:
@@ -37,12 +44,25 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
             ESP_LOGI(TAG, "Netmask: " IPSTR, IP2STR(&event->ip_info.netmask));
             ESP_LOGI(TAG, "========================================");
             wifi_connected = true;
+            if (g_wifi_event_group != NULL) {
+                xEventGroupClearBits(g_wifi_event_group, WIFI_DISCONNECTED_BIT);
+                xEventGroupSetBits(g_wifi_event_group, WIFI_CONNECTED_BIT);
+            }
         }
     }
 }
 
 esp_err_t wifi_manager_init(void) {
     ESP_LOGI(TAG, "Initializing WiFi manager...");
+
+    // Create event group for WiFi connection signaling
+    if (g_wifi_event_group == NULL) {
+        g_wifi_event_group = xEventGroupCreate();
+        if (g_wifi_event_group == NULL) {
+            ESP_LOGE(TAG, "Failed to create WiFi event group");
+            return ESP_ERR_NO_MEM;
+        }
+    }
 
     esp_err_t ret = esp_netif_init();
     if (ret != ESP_OK) {

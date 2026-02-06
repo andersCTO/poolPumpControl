@@ -32,6 +32,11 @@ static pump_mode_t determine_optimal_mode(void) {
         return PUMP_MODE_DAY;
     }
 
+    if (!price_fetcher_is_data_valid()) {
+        ESP_LOGW(TAG, "Price data stale or unavailable, using default day mode");
+        return PUMP_MODE_DAY;
+    }
+
     float current_price = price_fetcher_get_current_price();
 
     if (current_price < PRICE_THRESHOLD_LOW) {

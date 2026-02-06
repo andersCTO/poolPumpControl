@@ -2,7 +2,16 @@
 #define WIFI_MANAGER_H
 
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include <stdbool.h>
+
+// WiFi event group bits
+#define WIFI_CONNECTED_BIT BIT0
+#define WIFI_DISCONNECTED_BIT BIT1
+
+// Event group for WiFi connection state (can be used to wait for connection)
+extern EventGroupHandle_t g_wifi_event_group;
 
 /**
  * @brief Initialize WiFi manager

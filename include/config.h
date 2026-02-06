@@ -38,6 +38,11 @@
 #define PRICE_THRESHOLD_LOW 0.50  // SEK/kWh (approx 0.05 EUR)
 #define PRICE_THRESHOLD_HIGH 1.50 // SEK/kWh (approx 0.15 EUR)
 
+// Additional electricity costs on top of spot price (SEK/kWh)
+// Includes: elöverföringsavgift (grid fee), energiskatt (energy tax), etc.
+// Mälarenergi Elnät: ~21.5 öre grid + ~54 öre tax + other ≈ 1.00 SEK/kWh
+#define PRICE_ADDITIONAL_COST_SEK 1.00
+
 // Price Refresh Configuration
 #define PRICE_STALE_THRESHOLD_HOURS 3    // Data considered stale after this many hours
 #define PRICE_TOMORROW_AVAILABLE_HOUR 13 // Hour (CET) when next-day prices become available

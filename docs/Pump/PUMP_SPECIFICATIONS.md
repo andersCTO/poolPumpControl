@@ -156,5 +156,30 @@ Based on empirical power measurements and conservative flow estimates (~4m head)
 
 ---
 
+## Electricity Pricing
+
+### Spot Price
+- Source: elprisetjustnu.se API (Nordpool SE3 area)
+- Updates: Hourly prices, fetched daily
+- Includes: VAT (moms)
+
+### Additional Costs (Mälarenergi Elnät)
+
+On top of the spot price, the following costs apply:
+
+| Cost Component | Amount | Notes |
+|----------------|--------|-------|
+| Elöverföringsavgift (grid fee) | ~21.5 öre/kWh | Mälarenergi 2026 rates |
+| Energiskatt (energy tax) | ~54 öre/kWh | Swedish energy tax |
+| Other fees | ~25 öre/kWh | Certificates, retailer margin |
+| **Total additional** | **~1.00 SEK/kWh** | Configured in firmware |
+
+**Total electricity cost = Spot price + 1.00 SEK/kWh**
+
+Sources:
+- [Mälarenergi Elnätspriser](https://www.malarenergi.se/el/elnat/priser-elnat/)
+
+---
+
 *Document created: 2026-02-06*
 *Based on hardware inspection and manufacturer documentation*

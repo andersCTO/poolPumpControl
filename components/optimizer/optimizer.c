@@ -187,11 +187,13 @@ esp_err_t optimizer_compute_daily(const price_interval_t prices[PRICE_INTERVALS_
         if (mode != PUMP_MODE_OFF) {
             total_volume += s_mode_specs[mode].flow_liters_per_slot;
 
-            // Cost = power (kW) * time (0.25h) * price (SEK/kWh)
-            float price = prices[i].price_sek_kwh;
-            if (price < 0) price = 0; // Treat invalid as free for calculation
+            // Cost = power (kW) * time (0.25h) * total_price (SEK/kWh)
+            // Total price = spot price + additional costs (grid fees, taxes)
+            float spot_price = prices[i].price_sek_kwh;
+            if (spot_price < 0) spot_price = 0; // Treat invalid as free for calculation
+            float total_price = spot_price + PRICE_ADDITIONAL_COST_SEK;
             float power_kw = s_mode_specs[mode].power_watts / 1000.0f;
-            float cost_sek = power_kw * 0.25f * price;
+            float cost_sek = power_kw * 0.25f * total_price;
             total_cost += cost_sek;
         }
     }

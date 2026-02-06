@@ -122,46 +122,60 @@ esp_err_t optimizer_compute_daily(const price_interval_t prices[PRICE_INTERVALS_
     // Sort slots by price (cheapest first)
     qsort(slots, num_op_slots, sizeof(slot_info_t), compare_slots_by_price);
 
-    // Phase 1: Assign LOW mode to ALL operating slots
-    // This gives us the maximum efficiency per liter but may not meet volume target
-    int32_t night_volume_per_slot = s_mode_specs[PUMP_MODE_NIGHT].flow_liters_per_slot;
-    int32_t backwash_volume_per_slot = s_mode_specs[PUMP_MODE_BACKWASH].flow_liters_per_slot;
+    // Flow per slot for each mode
+    int32_t low_volume_per_slot = s_mode_specs[PUMP_MODE_NIGHT].flow_liters_per_slot;
+    int32_t high_volume_per_slot = s_mode_specs[PUMP_MODE_BACKWASH].flow_liters_per_slot;
 
-    // If we run LOW for all op slots: num_op_slots * 1400 L = 89,600 L (for 64 slots)
-    int32_t max_night_volume = num_op_slots * night_volume_per_slot;
+    // Maximum volume if we run LOW for all available slots
+    int32_t max_low_volume = valid_slot_count * low_volume_per_slot;
 
-    // Calculate volume shortfall
-    int32_t shortfall = volume_target - max_night_volume;
     ESP_LOGI(TAG,
-             "Target: %ld L, Max LOW: %ld L, Shortfall: %ld L",
+             "Target: %ld L, Max LOW capacity: %ld L (%d slots × %ld L)",
              (long)volume_target,
-             (long)max_night_volume,
-             (long)shortfall);
+             (long)max_low_volume,
+             valid_slot_count,
+             (long)low_volume_per_slot);
 
-    // Initialize all op slots to LOW mode
-    for (int i = op_start_slot; i < op_end_slot; i++) {
-        schedule->slot_modes[i] = PUMP_MODE_NIGHT;
-    }
+    if (max_low_volume >= volume_target) {
+        // Case 1: LOW mode alone can meet or exceed target
+        // Only use as many LOW slots as needed (cheapest first)
+        int slots_needed = (volume_target + low_volume_per_slot - 1) / low_volume_per_slot; // Ceiling division
+        ESP_LOGI(TAG, "LOW mode sufficient: need %d slots to meet target", slots_needed);
 
-    // Phase 2: Upgrade cheapest LOW slots to HIGH to fill volume gap
-    // LOW→HIGH adds (3600 - 1400) = 2200 L per slot
-    int32_t extra_volume_per_upgrade = backwash_volume_per_slot - night_volume_per_slot;
-    int upgrades_needed = 0;
+        int slots_assigned = 0;
+        for (int i = 0; i < num_op_slots && slots_assigned < slots_needed; i++) {
+            // Skip slots with invalid prices
+            if (slots[i].price < 0) continue;
 
-    if (shortfall > 0) {
-        upgrades_needed = (shortfall + extra_volume_per_upgrade - 1) / extra_volume_per_upgrade; // Ceiling division
-        ESP_LOGI(TAG, "Need %d HIGH upgrades to meet volume target", upgrades_needed);
-    }
+            int slot_idx = slots[i].index;
+            schedule->slot_modes[slot_idx] = PUMP_MODE_NIGHT;
+            slots_assigned++;
+        }
+    } else {
+        // Case 2: Need HIGH mode to meet target
+        // First, assign LOW to all valid slots
+        for (int i = 0; i < num_op_slots; i++) {
+            if (slots[i].price < 0) continue;
+            int slot_idx = slots[i].index;
+            schedule->slot_modes[slot_idx] = PUMP_MODE_NIGHT;
+        }
 
-    // Upgrade the cheapest slots from LOW to HIGH
-    int upgrades_done = 0;
-    for (int i = 0; i < num_op_slots && upgrades_done < upgrades_needed; i++) {
-        // Skip slots with invalid prices
-        if (slots[i].price < 0) continue;
+        // Calculate shortfall and upgrade cheapest slots to HIGH
+        int32_t shortfall = volume_target - max_low_volume;
+        int32_t extra_volume_per_upgrade = high_volume_per_slot - low_volume_per_slot;
+        int upgrades_needed = (shortfall + extra_volume_per_upgrade - 1) / extra_volume_per_upgrade; // Ceiling division
 
-        int slot_idx = slots[i].index;
-        schedule->slot_modes[slot_idx] = PUMP_MODE_BACKWASH;
-        upgrades_done++;
+        ESP_LOGI(TAG, "Shortfall: %ld L, need %d HIGH upgrades", (long)shortfall, upgrades_needed);
+
+        // Upgrade the cheapest slots from LOW to HIGH
+        int upgrades_done = 0;
+        for (int i = 0; i < num_op_slots && upgrades_done < upgrades_needed; i++) {
+            if (slots[i].price < 0) continue;
+
+            int slot_idx = slots[i].index;
+            schedule->slot_modes[slot_idx] = PUMP_MODE_BACKWASH;
+            upgrades_done++;
+        }
     }
 
     // Calculate total volume and cost

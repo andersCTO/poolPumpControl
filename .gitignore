@@ -1,4 +1,9 @@
 build/
+sdkconfig
+sdkconfig.old
 .sdkconfig*
 *.pyc
 .vscode/
+
+# Windows metadata
+*:Zone.Identifier

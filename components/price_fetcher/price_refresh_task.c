@@ -88,6 +88,16 @@ static bool should_fetch_tomorrow(void) {
     return false;
 }
 
+// Check if system time is valid (synced via SNTP)
+static bool is_time_valid(void) {
+    time_t now;
+    time(&now);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+    // Time is valid if year is 2024 or later
+    return (timeinfo.tm_year >= (2024 - 1900));
+}
+
 // Perform price fetch
 static bool do_price_fetch(void) {
     ESP_LOGI(TAG, "Fetching electricity prices...");
@@ -132,6 +142,13 @@ void price_refresh_task(void *pvParameters) {
             continue;
         }
 
+        // Wait for time to be synced via SNTP
+        if (!is_time_valid()) {
+            ESP_LOGI(TAG, "Waiting for time sync...");
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            continue;
+        }
+
         // Handle midnight rollover
         price_fetcher_handle_midnight_rollover();
 
@@ -144,9 +161,17 @@ void price_refresh_task(void *pvParameters) {
         time(&now);
         bool should_fetch = false;
 
-        // Fetch immediately on first WiFi connect
+        // Fetch immediately on first WiFi connect (after time is valid)
         if (first_connect) {
-            ESP_LOGI(TAG, "First WiFi connection, fetching prices immediately");
+            struct tm timeinfo;
+            localtime_r(&now, &timeinfo);
+            ESP_LOGI(TAG,
+                     "Time synced: %04d-%02d-%02d %02d:%02d, fetching prices",
+                     timeinfo.tm_year + 1900,
+                     timeinfo.tm_mon + 1,
+                     timeinfo.tm_mday,
+                     timeinfo.tm_hour,
+                     timeinfo.tm_min);
             should_fetch = true;
             first_connect = false;
         }

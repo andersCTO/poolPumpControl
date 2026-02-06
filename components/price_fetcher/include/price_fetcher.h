@@ -5,10 +5,39 @@
 #include <stdbool.h>
 #include <time.h>
 
+#define PRICE_INTERVALS_PER_DAY 96 // 15-minute intervals
+
 typedef struct {
     int hour;            // Hour of day (0-23)
-    float price_eur_kwh; // Price in EUR/kWh
+    float price_sek_kwh; // Price in SEK/kWh
 } price_data_t;
+
+typedef struct {
+    uint8_t interval;    // Interval index (0-95)
+    float price_sek_kwh; // Price in SEK/kWh
+} price_interval_t;
+
+typedef enum {
+    SCHEDULE_OFF = 0,  // Pump off (outside operating hours)
+    SCHEDULE_REQUIRED, // Must run to meet minimum runtime
+    SCHEDULE_OPTIONAL, // Running due to low price
+    SCHEDULE_STOPPED   // Not running (price too high or max reached)
+} schedule_slot_status_t;
+
+typedef struct {
+    schedule_slot_status_t status;
+    uint8_t mode; // PUMP_MODE_* if running
+    float price_sek_kwh;
+} schedule_slot_t;
+
+typedef struct {
+    float min_price;
+    float max_price;
+    float avg_price;
+    int min_hour;
+    int max_hour;
+    int valid_hours; // Number of hours with valid price data
+} price_stats_t;
 
 typedef enum {
     PRICE_FETCH_STATUS_IDLE,
@@ -42,9 +71,36 @@ esp_err_t price_fetcher_get_today_prices(price_data_t prices[24]);
 
 /**
  * @brief Get current hour price
- * @return Current electricity price in EUR/kWh
+ * @return Current electricity price in SEK/kWh
  */
 float price_fetcher_get_current_price(void);
+
+/**
+ * @brief Get all cached prices for today
+ * @param prices Array to fill with 24-hour price data
+ * @return Number of valid hours (0-24)
+ */
+int price_fetcher_get_cached_prices(price_data_t prices[24]);
+
+/**
+ * @brief Get all 15-minute interval prices for today
+ * @param intervals Array to fill with 96 interval prices
+ * @return Number of valid intervals (0-96)
+ */
+int price_fetcher_get_interval_prices(price_interval_t intervals[PRICE_INTERVALS_PER_DAY]);
+
+/**
+ * @brief Compute expected pump schedule for the day based on prices
+ * @param schedule Array to fill with 96 schedule slots
+ * @param current_runtime Current runtime in minutes today
+ */
+void price_fetcher_compute_schedule(schedule_slot_t schedule[PRICE_INTERVALS_PER_DAY], int current_runtime);
+
+/**
+ * @brief Get price statistics for today
+ * @param stats Output structure for statistics
+ */
+void price_fetcher_get_stats(price_stats_t *stats);
 
 /**
  * @brief Check if current price is below threshold for pump operation

@@ -1,6 +1,7 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif.h"
+#include "esp_sntp.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -8,6 +9,7 @@
 #include "sdkconfig.h"
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "config.h"
 #include "price_fetcher.h"
@@ -17,6 +19,17 @@
 #include "wifi_manager.h"
 
 static const char *TAG = "POOL_PUMP_MAIN";
+
+static void init_sntp(void) {
+    ESP_LOGI(TAG, "Initializing SNTP");
+    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_init();
+
+    // Set timezone to CET/CEST (Stockholm)
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+    tzset();
+}
 
 void app_main(void) {
     ESP_LOGI(TAG, "Pool Pump Controller starting...");
@@ -42,6 +55,7 @@ void app_main(void) {
     if (strlen(CONFIG_POOL_PUMP_WIFI_SSID) > 0) {
         ESP_LOGI(TAG, "Connecting to WiFi: %s", CONFIG_POOL_PUMP_WIFI_SSID);
         wifi_manager_connect(CONFIG_POOL_PUMP_WIFI_SSID, CONFIG_POOL_PUMP_WIFI_PASSWORD);
+        init_sntp();
     } else {
         ESP_LOGW(TAG, "No WiFi credentials configured - use BLE to provision");
     }

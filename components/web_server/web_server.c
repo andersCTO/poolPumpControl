@@ -174,6 +174,7 @@ esp_err_t web_server_init(void) {
     }
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.stack_size = 8192; // Increase from default 4096 to handle larger responses
 
     ESP_LOGI(TAG, "Starting web server on port %d", config.server_port);
     esp_err_t ret = httpd_start(&s_server, &config);

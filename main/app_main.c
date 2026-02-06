@@ -5,7 +5,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
+#include "sdkconfig.h"
 #include <stdio.h>
+#include <string.h>
 
 #include "config.h"
 #include "price_fetcher.h"
@@ -27,10 +29,6 @@ void app_main(void) {
     }
     ESP_ERROR_CHECK(ret);
 
-    // Initialize networking
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-
     // Initialize components
     config_init();
     wifi_manager_init();
@@ -38,6 +36,18 @@ void app_main(void) {
     pump_controller_init();
     price_fetcher_init();
     web_server_init();
+
+    // Connect to WiFi if credentials are configured
+#ifdef CONFIG_POOL_PUMP_WIFI_SSID
+    if (strlen(CONFIG_POOL_PUMP_WIFI_SSID) > 0) {
+        ESP_LOGI(TAG, "Connecting to WiFi: %s", CONFIG_POOL_PUMP_WIFI_SSID);
+        wifi_manager_connect(CONFIG_POOL_PUMP_WIFI_SSID, CONFIG_POOL_PUMP_WIFI_PASSWORD);
+    } else {
+        ESP_LOGW(TAG, "No WiFi credentials configured - use BLE to provision");
+    }
+#else
+    ESP_LOGW(TAG, "No WiFi credentials configured - use BLE to provision");
+#endif
 
     ESP_LOGI(TAG, "Pool Pump Controller initialized successfully");
 

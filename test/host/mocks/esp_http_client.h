@@ -30,10 +30,14 @@ typedef struct {
 
 typedef esp_err_t (*http_event_handle_cb)(esp_http_client_event_t *evt);
 
+typedef esp_err_t (*esp_crt_bundle_attach_fn)(void *conf);
+
 typedef struct {
     const char *url;
     http_event_handle_cb event_handler;
     void *user_data;
+    esp_crt_bundle_attach_fn crt_bundle_attach;
+    int timeout_ms;
 } esp_http_client_config_t;
 
 esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *config);

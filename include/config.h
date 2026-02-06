@@ -30,10 +30,13 @@
 #define INVERTER_DI4_PIN RELAY_3_PIN // Low speed (1200 RPM) - Night
 
 // Price Fetcher Configuration
-#define PRICE_API_URL "https://api.energidataservice.dk/dataset/Elspotprices"
+// Using elprisetjustnu.se API for Swedish prices
+// URL format: https://www.elprisetjustnu.se/api/v1/prices/YYYY/MM-DD_AREA.json
+#define PRICE_API_BASE_URL "https://www.elprisetjustnu.se/api/v1/prices"
+#define PRICE_AREA "SE3"
 #define PRICE_FETCH_INTERVAL_HOURS 1
-#define PRICE_THRESHOLD_LOW 0.10  // EUR/kWh
-#define PRICE_THRESHOLD_HIGH 0.30 // EUR/kWh
+#define PRICE_THRESHOLD_LOW 0.50  // SEK/kWh (approx 0.05 EUR)
+#define PRICE_THRESHOLD_HIGH 1.50 // SEK/kWh (approx 0.15 EUR)
 
 // Price Refresh Configuration
 #define PRICE_STALE_THRESHOLD_HOURS 3    // Data considered stale after this many hours
@@ -41,10 +44,28 @@
 #define PRICE_FETCH_RETRY_BASE_SEC 30    // Initial retry delay on failure
 #define PRICE_FETCH_RETRY_MAX_MIN 60     // Maximum retry delay in minutes
 
+// Pool Configuration
+#define POOL_VOLUME_LITERS 60000
+#define POOL_CIRCULATION_FACTOR 2
+
+// Pump Flow Rates (liters per hour)
+#define PUMP_FLOW_NIGHT_LPH 5600
+#define PUMP_FLOW_DAY_LPH 8000
+#define PUMP_FLOW_BACKWASH_LPH 14400
+
+// Pump Power Consumption (watts)
+#define PUMP_POWER_NIGHT_W 88
+#define PUMP_POWER_DAY_W 353
+#define PUMP_POWER_BACKWASH_W 486
+
 // Pump Operation Settings
 #define MIN_DAILY_RUNTIME_HOURS 4
 #define MAX_DAILY_RUNTIME_HOURS 12
 #define BACKWASH_DURATION_MINUTES 10
+
+// Operating hours for pump scheduling
+#define PUMP_OP_START_HOUR 6
+#define PUMP_OP_END_HOUR 22
 
 // NVS Storage Keys
 #define NVS_NAMESPACE "pool_pump"

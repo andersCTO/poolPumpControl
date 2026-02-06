@@ -21,6 +21,7 @@ set(PROJECT_INCLUDE_DIRS
     ${PROJECT_ROOT}/components/nvs_storage/include
     ${PROJECT_ROOT}/components/price_fetcher/include
     ${PROJECT_ROOT}/components/web_server/include
+    ${PROJECT_ROOT}/components/optimizer/include
 )
 
 # ---- Vendored libraries ----
@@ -60,6 +61,7 @@ add_library(components STATIC
     ${PROJECT_ROOT}/components/nvs_storage/nvs_storage.c
     ${PROJECT_ROOT}/components/price_fetcher/price_fetcher.c
     ${PROJECT_ROOT}/components/web_server/web_server.c
+    ${PROJECT_ROOT}/components/optimizer/optimizer.c
     ${PROJECT_ROOT}/main/pump_scheduler.c
     ${PROJECT_ROOT}/main/config.c
 )

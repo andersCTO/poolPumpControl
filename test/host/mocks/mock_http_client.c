@@ -1,6 +1,13 @@
+#include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include <stdlib.h>
 #include <string.h>
+
+// Mock for esp_crt_bundle_attach
+esp_err_t esp_crt_bundle_attach(void *conf) {
+    (void)conf;
+    return ESP_OK;
+}
 
 static char *mock_response_data = NULL;
 static size_t mock_response_length = 0;

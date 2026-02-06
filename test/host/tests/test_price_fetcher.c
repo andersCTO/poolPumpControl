@@ -16,13 +16,12 @@ TEST(price_fetcher_tests, test_init_success) {
 }
 
 TEST(price_fetcher_tests, test_get_today_prices_success) {
-    const char *mock_json = "{"
-                            "\"records\": ["
-                            "{\"SpotPriceEUR\": 0.123},"
-                            "{\"SpotPriceEUR\": 0.145},"
-                            "{\"SpotPriceEUR\": 0.089}"
-                            "]"
-                            "}";
+    // elprisetjustnu.se API returns 96 entries (15-min intervals) per day
+    const char *mock_json = "["
+                            "{\"SEK_per_kWh\": 0.75, \"time_start\": \"2024-01-15T00:00:00+01:00\"},"
+                            "{\"SEK_per_kWh\": 0.80, \"time_start\": \"2024-01-15T01:00:00+01:00\"},"
+                            "{\"SEK_per_kWh\": 0.65, \"time_start\": \"2024-01-15T02:00:00+01:00\"}"
+                            "]";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -32,9 +31,9 @@ TEST(price_fetcher_tests, test_get_today_prices_success) {
     esp_err_t result = price_fetcher_get_today_prices(prices);
     TEST_ASSERT_EQUAL(ESP_OK, result);
 
-    TEST_ASSERT_EQUAL_FLOAT(0.123f, prices[0].price_eur_kwh);
-    TEST_ASSERT_EQUAL_FLOAT(0.145f, prices[1].price_eur_kwh);
-    TEST_ASSERT_EQUAL_FLOAT(0.089f, prices[2].price_eur_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(0.75f, prices[0].price_sek_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(0.80f, prices[1].price_sek_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(0.65f, prices[2].price_sek_kwh);
 }
 
 TEST(price_fetcher_tests, test_get_current_price_no_data) {
@@ -44,11 +43,10 @@ TEST(price_fetcher_tests, test_get_current_price_no_data) {
 }
 
 TEST(price_fetcher_tests, test_is_low_price_period_high_price) {
-    const char *mock_json = "{"
-                            "\"records\": ["
-                            "{\"SpotPriceEUR\": 0.25}"
-                            "]"
-                            "}";
+    // Price above PRICE_THRESHOLD_LOW (0.50 SEK) should not be low
+    const char *mock_json = "["
+                            "{\"SEK_per_kWh\": 2.50, \"time_start\": \"2024-01-15T00:00:00+01:00\"}"
+                            "]";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -62,11 +60,10 @@ TEST(price_fetcher_tests, test_is_low_price_period_high_price) {
 }
 
 TEST(price_fetcher_tests, test_is_low_price_period_zero_price) {
-    const char *mock_json = "{"
-                            "\"records\": ["
-                            "{\"SpotPriceEUR\": 0.0}"
-                            "]"
-                            "}";
+    // Zero price should not trigger low price (need positive price)
+    const char *mock_json = "["
+                            "{\"SEK_per_kWh\": 0.0, \"time_start\": \"2024-01-15T00:00:00+01:00\"}"
+                            "]";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -80,15 +77,13 @@ TEST(price_fetcher_tests, test_is_low_price_period_zero_price) {
 }
 
 TEST(price_fetcher_tests, test_multiple_price_records) {
-    const char *mock_json = "{"
-                            "\"records\": ["
-                            "{\"SpotPriceEUR\": 0.10},"
-                            "{\"SpotPriceEUR\": 0.12},"
-                            "{\"SpotPriceEUR\": 0.08},"
-                            "{\"SpotPriceEUR\": 0.15},"
-                            "{\"SpotPriceEUR\": 0.09}"
-                            "]"
-                            "}";
+    const char *mock_json = "["
+                            "{\"SEK_per_kWh\": 1.00, \"time_start\": \"2024-01-15T00:00:00+01:00\"},"
+                            "{\"SEK_per_kWh\": 1.20, \"time_start\": \"2024-01-15T01:00:00+01:00\"},"
+                            "{\"SEK_per_kWh\": 0.80, \"time_start\": \"2024-01-15T02:00:00+01:00\"},"
+                            "{\"SEK_per_kWh\": 1.50, \"time_start\": \"2024-01-15T03:00:00+01:00\"},"
+                            "{\"SEK_per_kWh\": 0.90, \"time_start\": \"2024-01-15T04:00:00+01:00\"}"
+                            "]";
 
     mock_http_client_set_response_data(mock_json, strlen(mock_json));
     mock_http_client_set_status_code(200);
@@ -98,14 +93,15 @@ TEST(price_fetcher_tests, test_multiple_price_records) {
     esp_err_t result = price_fetcher_get_today_prices(prices);
     TEST_ASSERT_EQUAL(ESP_OK, result);
 
-    TEST_ASSERT_EQUAL_FLOAT(0.10f, prices[0].price_eur_kwh);
-    TEST_ASSERT_EQUAL_FLOAT(0.12f, prices[1].price_eur_kwh);
-    TEST_ASSERT_EQUAL_FLOAT(0.08f, prices[2].price_eur_kwh);
-    TEST_ASSERT_EQUAL_FLOAT(0.15f, prices[3].price_eur_kwh);
-    TEST_ASSERT_EQUAL_FLOAT(0.09f, prices[4].price_eur_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(1.00f, prices[0].price_sek_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(1.20f, prices[1].price_sek_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(0.80f, prices[2].price_sek_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(1.50f, prices[3].price_sek_kwh);
+    TEST_ASSERT_EQUAL_FLOAT(0.90f, prices[4].price_sek_kwh);
 
+    // Remaining prices should be initialized to -1 (invalid)
     for (int i = 5; i < 24; i++) {
-        TEST_ASSERT_EQUAL_FLOAT(0.0f, prices[i].price_eur_kwh);
+        TEST_ASSERT_EQUAL_FLOAT(-1.0f, prices[i].price_sek_kwh);
     }
 }
 

@@ -8,5 +8,6 @@ idf_component_register(
         pump_controller
         price_fetcher
         wifi_manager
+        optimizer
         main
 )

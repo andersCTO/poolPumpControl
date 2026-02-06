@@ -20,4 +20,5 @@ idf_component_register(
         json
         driver
         web_server
+        optimizer
 )

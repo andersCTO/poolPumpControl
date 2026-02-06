@@ -42,6 +42,7 @@ esp_err_t httpd_register_uri_handler(httpd_handle_t handle, const httpd_uri_t *u
 esp_err_t httpd_resp_set_type(httpd_req_t *r, const char *type);
 esp_err_t httpd_resp_set_status(httpd_req_t *r, const char *status);
 esp_err_t httpd_resp_send(httpd_req_t *r, const char *buf, int buf_len);
+esp_err_t httpd_resp_send_500(httpd_req_t *r);
 
 // Test helpers
 void mock_httpd_reset(void);

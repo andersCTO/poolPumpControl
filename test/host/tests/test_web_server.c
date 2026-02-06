@@ -82,7 +82,7 @@ TEST(web_server_tests, test_api_status_handler_returns_json) {
     TEST_ASSERT_NOT_NULL(strstr(response, "\"mode\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"rpm\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"daily_runtime_minutes\""));
-    TEST_ASSERT_NOT_NULL(strstr(response, "\"price_eur_kwh\""));
+    TEST_ASSERT_NOT_NULL(strstr(response, "\"price_sek_kwh\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"wifi_connected\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"price_last_fetch\""));
     TEST_ASSERT_NOT_NULL(strstr(response, "\"price_fetch_status\""));

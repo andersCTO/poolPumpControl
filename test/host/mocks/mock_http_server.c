@@ -58,6 +58,11 @@ esp_err_t httpd_resp_send(httpd_req_t *r, const char *buf, int buf_len) {
     return ESP_OK;
 }
 
+esp_err_t httpd_resp_send_500(httpd_req_t *r) {
+    (void)r;
+    return ESP_OK;
+}
+
 void mock_httpd_reset(void) {
     registered_uri_count = 0;
     memset(registered_uris, 0, sizeof(registered_uris));

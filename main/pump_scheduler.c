@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include "config.h"
+#include "optimizer.h"
 #include "price_fetcher.h"
 #include "pump_controller.h"
 #include "wifi_manager.h"
@@ -16,43 +17,153 @@ static bool s_pump_running = false;
 static int s_daily_runtime_minutes = 0;
 static int s_current_hour = -1;
 
-static bool is_within_operating_hours(void) {
+// Optimizer state
+static optimizer_schedule_t s_today_schedule;
+static bool s_schedule_computed = false;
+static uint8_t s_last_computed_day = 0;
+static time_t s_last_price_fetch_time = 0;
+
+// Get current 15-minute slot index (0-95)
+static int get_current_slot(void) {
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    return timeinfo.tm_hour * 4 + (timeinfo.tm_min / 15);
+}
+
+// Check if schedule needs recomputation
+static bool schedule_needs_update(void) {
     time_t now;
     struct tm timeinfo;
     time(&now);
     localtime_r(&now, &timeinfo);
 
-    // Allow operation between 6 AM and 10 PM
-    return (timeinfo.tm_hour >= 6 && timeinfo.tm_hour < 22);
+    // Recompute on day change
+    if (s_last_computed_day != timeinfo.tm_mday) {
+        ESP_LOGI(TAG, "Day changed, schedule recomputation needed");
+        return true;
+    }
+
+    // Recompute if prices were refreshed
+    time_t last_fetch = price_fetcher_get_last_fetch_time();
+    if (last_fetch > s_last_price_fetch_time) {
+        ESP_LOGI(TAG, "Prices updated, schedule recomputation needed");
+        return true;
+    }
+
+    // Recompute if we haven't computed yet
+    if (!s_schedule_computed) {
+        return true;
+    }
+
+    return false;
 }
 
-static pump_mode_t determine_optimal_mode(void) {
-    if (!wifi_manager_is_connected()) {
-        ESP_LOGW(TAG, "WiFi not connected, using default day mode");
-        return PUMP_MODE_DAY;
+// Compute and cache the daily schedule
+static void update_schedule(void) {
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    // Get current interval prices
+    price_interval_t prices[PRICE_INTERVALS_PER_DAY];
+    int valid_count = price_fetcher_get_interval_prices(prices);
+
+    if (valid_count == 0) {
+        ESP_LOGW(TAG, "No valid prices available, cannot compute schedule");
+        s_schedule_computed = false;
+        return;
     }
 
-    if (!price_fetcher_is_data_valid()) {
-        ESP_LOGW(TAG, "Price data stale or unavailable, using default day mode");
-        return PUMP_MODE_DAY;
+    // Compute optimal schedule
+    esp_err_t ret = optimizer_compute_daily(prices, &s_today_schedule);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to compute schedule: %s", esp_err_to_name(ret));
+        s_schedule_computed = false;
+        return;
     }
 
-    float current_price = price_fetcher_get_current_price();
+    s_schedule_computed = true;
+    s_last_computed_day = timeinfo.tm_mday;
+    s_last_price_fetch_time = price_fetcher_get_last_fetch_time();
 
-    if (current_price < PRICE_THRESHOLD_LOW) {
-        ESP_LOGI(TAG, "Low price period (%.3f EUR/kWh), using day mode", current_price);
-        return PUMP_MODE_DAY;
-    } else if (current_price > PRICE_THRESHOLD_HIGH) {
-        ESP_LOGI(TAG, "High price period (%.3f EUR/kWh), using night mode", current_price);
-        return PUMP_MODE_NIGHT;
+    ESP_LOGI(TAG,
+             "Schedule computed: %ld L volume, %.2f SEK estimated cost",
+             (long)s_today_schedule.total_volume_liters,
+             s_today_schedule.total_cost_cents / 100.0f);
+}
+
+// Apply the scheduled pump mode for current slot
+static void apply_scheduled_mode(int current_slot) {
+    pump_mode_t target_mode = PUMP_MODE_OFF;
+
+    if (s_schedule_computed && s_today_schedule.valid) {
+        target_mode = optimizer_get_slot_mode(&s_today_schedule, current_slot);
     } else {
-        ESP_LOGI(TAG, "Medium price period (%.3f EUR/kWh), using day mode", current_price);
-        return PUMP_MODE_DAY;
+        // Fallback: use price thresholds if no schedule available
+        if (!wifi_manager_is_connected() || !price_fetcher_is_data_valid()) {
+            target_mode = PUMP_MODE_OFF;
+        } else {
+            float current_price = price_fetcher_get_current_price();
+            if (current_price < PRICE_THRESHOLD_LOW) {
+                target_mode = PUMP_MODE_DAY;
+            } else if (current_price > PRICE_THRESHOLD_HIGH) {
+                target_mode = PUMP_MODE_OFF;
+            } else {
+                target_mode = PUMP_MODE_NIGHT;
+            }
+        }
+    }
+
+    // Get current pump state
+    pump_status_t status;
+    pump_controller_get_status(&status);
+
+    // Apply mode change if needed
+    if (target_mode == PUMP_MODE_OFF) {
+        if (s_pump_running) {
+            ESP_LOGI(TAG, "Slot %d: Stopping pump (scheduled OFF)", current_slot);
+            pump_controller_stop();
+            s_pump_running = false;
+        }
+    } else {
+        if (!s_pump_running) {
+            ESP_LOGI(TAG,
+                     "Slot %d: Starting pump in %s mode",
+                     current_slot,
+                     target_mode == PUMP_MODE_NIGHT      ? "NIGHT"
+                     : target_mode == PUMP_MODE_DAY      ? "DAY"
+                     : target_mode == PUMP_MODE_BACKWASH ? "BACKWASH"
+                                                         : "UNKNOWN");
+            pump_controller_set_mode(target_mode);
+            pump_controller_start();
+            s_pump_running = true;
+        } else if (status.mode != target_mode) {
+            ESP_LOGI(TAG,
+                     "Slot %d: Changing mode to %s",
+                     current_slot,
+                     target_mode == PUMP_MODE_NIGHT      ? "NIGHT"
+                     : target_mode == PUMP_MODE_DAY      ? "DAY"
+                     : target_mode == PUMP_MODE_BACKWASH ? "BACKWASH"
+                                                         : "UNKNOWN");
+            pump_controller_set_mode(target_mode);
+        }
     }
 }
 
 void pump_scheduler_task(void *pvParameters) {
     ESP_LOGI(TAG, "Pump scheduler task started");
+
+    // Initialize optimizer with default config
+    optimizer_config_t opt_config = {
+        .pool_volume_liters = POOL_VOLUME_LITERS,
+        .circulation_factor = POOL_CIRCULATION_FACTOR,
+        .op_start_hour = PUMP_OP_START_HOUR,
+        .op_end_hour = PUMP_OP_END_HOUR,
+    };
+    optimizer_init(&opt_config);
 
     TickType_t last_wake_time = xTaskGetTickCount();
     const TickType_t frequency = pdMS_TO_TICKS(60000); // Run every minute
@@ -68,57 +179,20 @@ void pump_scheduler_task(void *pvParameters) {
         // Reset daily counter at midnight
         if (timeinfo.tm_hour == 0 && last_hour == 23) {
             s_daily_runtime_minutes = 0;
+            s_schedule_computed = false; // Force recomputation for new day
             ESP_LOGI(TAG, "New day started, resetting runtime counter");
         }
         last_hour = timeinfo.tm_hour;
         s_current_hour = timeinfo.tm_hour;
 
-        // Check if we're within operating hours
-        if (!is_within_operating_hours()) {
-            if (s_pump_running) {
-                ESP_LOGI(TAG, "Outside operating hours, stopping pump");
-                pump_controller_stop();
-                s_pump_running = false;
-            }
-        } else {
-            // Check if we've reached minimum daily runtime
-            int min_runtime_minutes = MIN_DAILY_RUNTIME_HOURS * 60;
-            int max_runtime_minutes = MAX_DAILY_RUNTIME_HOURS * 60;
-
-            if (s_daily_runtime_minutes < min_runtime_minutes) {
-                // Must run to meet minimum requirements
-                if (!s_pump_running) {
-                    pump_mode_t mode = determine_optimal_mode();
-                    ESP_LOGI(TAG,
-                             "Starting pump to meet minimum runtime (%d/%d min)",
-                             s_daily_runtime_minutes,
-                             min_runtime_minutes);
-                    pump_controller_set_mode(mode);
-                    pump_controller_start();
-                    s_pump_running = true;
-                }
-            } else if (s_daily_runtime_minutes >= max_runtime_minutes) {
-                // Reached maximum, stop for today
-                if (s_pump_running) {
-                    ESP_LOGI(TAG, "Maximum daily runtime reached, stopping pump");
-                    pump_controller_stop();
-                    s_pump_running = false;
-                }
-            } else {
-                // Optional operation based on electricity prices
-                if (price_fetcher_is_low_price_period() && !s_pump_running) {
-                    pump_mode_t mode = determine_optimal_mode();
-                    ESP_LOGI(TAG, "Low price period detected, starting pump");
-                    pump_controller_set_mode(mode);
-                    pump_controller_start();
-                    s_pump_running = true;
-                } else if (!price_fetcher_is_low_price_period() && s_pump_running) {
-                    ESP_LOGI(TAG, "Price increased, stopping optional operation");
-                    pump_controller_stop();
-                    s_pump_running = false;
-                }
-            }
+        // Check if schedule needs update
+        if (schedule_needs_update()) {
+            update_schedule();
         }
+
+        // Get current slot and apply scheduled mode
+        int current_slot = get_current_slot();
+        apply_scheduled_mode(current_slot);
 
         // Update runtime counter
         if (s_pump_running) {
@@ -132,11 +206,15 @@ void pump_scheduler_task(void *pvParameters) {
             pump_status_t status;
             pump_controller_get_status(&status);
             ESP_LOGI(TAG,
-                     "Status: %s, Mode: %d, Runtime today: %d min, Price: %.3f EUR/kWh",
+                     "Status: %s, Mode: %s, Slot: %d, Runtime: %d min, Cost: %.2f SEK",
                      s_pump_running ? "RUNNING" : "STOPPED",
-                     status.mode,
+                     status.mode == PUMP_MODE_NIGHT      ? "NIGHT"
+                     : status.mode == PUMP_MODE_DAY      ? "DAY"
+                     : status.mode == PUMP_MODE_BACKWASH ? "BACKWASH"
+                                                         : "OFF",
+                     current_slot,
                      s_daily_runtime_minutes,
-                     price_fetcher_get_current_price());
+                     s_schedule_computed ? s_today_schedule.total_cost_cents / 100.0f : 0.0f);
         }
 
         vTaskDelayUntil(&last_wake_time, frequency);
@@ -150,4 +228,16 @@ void pump_scheduler_get_status(scheduler_status_t *status) {
     status->pump_running = s_pump_running;
     status->daily_runtime_minutes = s_daily_runtime_minutes;
     status->current_hour = s_current_hour;
+}
+
+// New function to expose schedule to web server
+bool pump_scheduler_get_schedule(optimizer_schedule_t *schedule) {
+    if (schedule == NULL) {
+        return false;
+    }
+    if (s_schedule_computed) {
+        *schedule = s_today_schedule;
+        return true;
+    }
+    return false;
 }

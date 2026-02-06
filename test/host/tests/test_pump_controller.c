@@ -35,7 +35,7 @@ TEST(pump_controller_tests, test_set_mode_night) {
     result = pump_controller_get_status(&status);
     TEST_ASSERT_EQUAL(ESP_OK, result);
     TEST_ASSERT_EQUAL(PUMP_MODE_NIGHT, status.mode);
-    TEST_ASSERT_EQUAL(1400, status.current_rpm);
+    TEST_ASSERT_EQUAL(1200, status.current_rpm); // DI4 → 1200 rpm per manual
     TEST_ASSERT_FALSE(status.is_running);
 }
 
@@ -47,7 +47,7 @@ TEST(pump_controller_tests, test_set_mode_day) {
     result = pump_controller_get_status(&status);
     TEST_ASSERT_EQUAL(ESP_OK, result);
     TEST_ASSERT_EQUAL(PUMP_MODE_DAY, status.mode);
-    TEST_ASSERT_EQUAL(2000, status.current_rpm);
+    TEST_ASSERT_EQUAL(2400, status.current_rpm); // DI3 → 2400 rpm per manual
     TEST_ASSERT_FALSE(status.is_running);
 }
 

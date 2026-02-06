@@ -89,9 +89,10 @@ esp_err_t relay_control_all_off(void) {
 
 esp_err_t relay_control_set_pump_mode(int mode) {
     // First turn off all pump relays
-    relay_control_set(RELAY_1, false); // Night mode off
-    relay_control_set(RELAY_2, false); // Day mode off
-    relay_control_set(RELAY_3, false); // Backwash mode off
+    // Per RB344 Vario manual: DI2=2900rpm, DI3=2400rpm, DI4=1200rpm
+    relay_control_set(RELAY_1, false); // DI2 (2900 rpm) off
+    relay_control_set(RELAY_2, false); // DI3 (2400 rpm) off
+    relay_control_set(RELAY_3, false); // DI4 (1200 rpm) off
 
     // Small delay to ensure clean switching
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -100,17 +101,17 @@ esp_err_t relay_control_set_pump_mode(int mode) {
         case 0: // OFF
             ESP_LOGI(TAG, "Pump mode set to OFF");
             break;
-        case 1: // Night mode (1400 RPM)
-            relay_control_set(RELAY_1, true);
-            ESP_LOGI(TAG, "Pump mode set to NIGHT (1400 RPM)");
-            break;
-        case 2: // Day mode (2000 RPM)
-            relay_control_set(RELAY_2, true);
-            ESP_LOGI(TAG, "Pump mode set to DAY (2000 RPM)");
-            break;
-        case 3: // Backwash mode (2900 RPM)
+        case 1: // Night mode - Low speed via DI4
             relay_control_set(RELAY_3, true);
-            ESP_LOGI(TAG, "Pump mode set to BACKWASH (2900 RPM)");
+            ESP_LOGI(TAG, "Pump mode set to NIGHT (1200 RPM via DI4)");
+            break;
+        case 2: // Day mode - Medium speed via DI3
+            relay_control_set(RELAY_2, true);
+            ESP_LOGI(TAG, "Pump mode set to DAY (2400 RPM via DI3)");
+            break;
+        case 3: // Backwash mode - High speed via DI2
+            relay_control_set(RELAY_1, true);
+            ESP_LOGI(TAG, "Pump mode set to BACKWASH (2900 RPM via DI2)");
             break;
         default:
             ESP_LOGE(TAG, "Invalid pump mode: %d", mode);

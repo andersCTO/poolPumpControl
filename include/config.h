@@ -7,10 +7,11 @@
 #define WIFI_SSID_MAX_LEN 32
 #define WIFI_PASSWORD_MAX_LEN 64
 
-// Pump Speed Settings (RPM)
-#define PUMP_SPEED_NIGHT 1400
-#define PUMP_SPEED_DAY 2000
-#define PUMP_SPEED_BACKWASH 2900
+// Pump Speed Settings (RPM) - actual speeds from inverter digital inputs
+// These are the fixed speeds when DI2/3/4 are connected to COM (per manual)
+#define PUMP_SPEED_NIGHT 1200    // DI4 → COM (Low speed)
+#define PUMP_SPEED_DAY 2400      // DI3 → COM (Medium speed)
+#define PUMP_SPEED_BACKWASH 2900 // DI2 → COM (High speed)
 
 // Relay Pin Configuration for LilyGO T-Relay
 #define RELAY_1_PIN 21
@@ -18,10 +19,14 @@
 #define RELAY_3_PIN 18
 #define RELAY_4_PIN 5
 
-// Digital Input Pins for Inverter Control
-#define INVERTER_DI2_PIN RELAY_1_PIN // Night mode (1400 RPM)
-#define INVERTER_DI3_PIN RELAY_2_PIN // Day mode (2000 RPM)
-#define INVERTER_DI4_PIN RELAY_3_PIN // Backwash mode (2900 RPM)
+// Digital Input Pins for Inverter Control (from RB344 Vario manual Section 5.4)
+// When digital input is connected to COM, it triggers a fixed speed:
+//   DI2 → COM = 2900 rpm (High/Backwash)
+//   DI3 → COM = 2400 rpm (Medium/Day)
+//   DI4 → COM = 1200 rpm (Low/Night)
+#define INVERTER_DI2_PIN RELAY_1_PIN // High speed (2900 RPM) - Backwash
+#define INVERTER_DI3_PIN RELAY_2_PIN // Medium speed (2400 RPM) - Day
+#define INVERTER_DI4_PIN RELAY_3_PIN // Low speed (1200 RPM) - Night
 
 // Price Fetcher Configuration
 #define PRICE_API_URL "https://api.energidataservice.dk/dataset/Elspotprices"

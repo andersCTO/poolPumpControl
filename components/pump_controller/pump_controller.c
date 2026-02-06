@@ -13,18 +13,24 @@ static const char *TAG = "pump_controller";
 #define RELAY_4_GPIO GPIO_NUM_5
 
 // Map modes to relay configurations for AquaForte Vario+ II
-// Digital inputs: IN1, IN2, IN3 control speed
+// Per RB344 Vario manual Section 5.4, digital inputs trigger fixed speeds:
+//   Relay 1 → DI2 → COM = 2900 rpm (High/Backwash)
+//   Relay 2 → DI3 → COM = 2400 rpm (Medium/Day)
+//   Relay 3 → DI4 → COM = 1200 rpm (Low/Night)
+// Only one digital input should be active at a time.
 typedef struct {
-    bool relay1; // IN1
-    bool relay2; // IN2
-    bool relay3; // IN3
+    bool relay1; // DI2 (2900 rpm)
+    bool relay2; // DI3 (2400 rpm)
+    bool relay3; // DI4 (1200 rpm)
     int rpm;
 } pump_config_t;
 
-static const pump_config_t pump_configs[] = {[PUMP_MODE_OFF] = {false, false, false, 0},
-                                             [PUMP_MODE_NIGHT] = {true, false, false, 1400},
-                                             [PUMP_MODE_DAY] = {false, true, false, 2000},
-                                             [PUMP_MODE_BACKWASH] = {true, true, false, 2900}};
+static const pump_config_t pump_configs[] = {
+    [PUMP_MODE_OFF] = {false, false, false, 0},
+    [PUMP_MODE_NIGHT] = {false, false, true, 1200},    // DI4 → 1200 rpm
+    [PUMP_MODE_DAY] = {false, true, false, 2400},      // DI3 → 2400 rpm
+    [PUMP_MODE_BACKWASH] = {true, false, false, 2900}, // DI2 → 2900 rpm
+};
 
 static pump_status_t current_status = {
     .mode = PUMP_MODE_OFF, .runtime_hours = 0, .is_running = false, .current_rpm = 0};

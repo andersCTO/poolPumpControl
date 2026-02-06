@@ -106,11 +106,16 @@ Each component has its own `CMakeLists.txt` and exposes headers under `include/p
 
 ### Hardware mapping
 
-Relay GPIOs control the AquaForte inverter's digital inputs:
-- Relay 1 (GPIO 21) → DI2 → Night mode (1400 RPM)
-- Relay 2 (GPIO 19) → DI3 → Day mode (2000 RPM)
-- Relay 3 (GPIO 18) → DI4 → Backwash mode (2900 RPM)
-- Relay 4 (GPIO 5) → available
+Relay GPIOs control the AquaForte Vario+ inverter's digital inputs. Per the RB344 Vario manual (Section 5.4), connecting a digital input to COM triggers a **fixed speed**:
+
+| Relay | GPIO | Inverter DI | Speed | Mode |
+|-------|------|-------------|-------|------|
+| Relay 1 | 21 | DI2 → COM | 2900 rpm | Backwash (High) |
+| Relay 2 | 19 | DI3 → COM | 2400 rpm | Day (Medium) |
+| Relay 3 | 18 | DI4 → COM | 1200 rpm | Night (Low) |
+| Relay 4 | 5 | — | — | Available |
+
+**Important**: Only one digital input should be active at a time. The inverter manual (`docs/rb344-vario-manual.pdf`) is the authoritative reference for speed/DI mapping.
 
 ### BLE interface (`components/bluetooth_config/`)
 

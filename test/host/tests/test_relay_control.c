@@ -88,19 +88,21 @@ TEST(relay_control_tests, test_pump_mode_night) {
     esp_err_t result = relay_control_set_pump_mode(1);
     TEST_ASSERT_EQUAL(ESP_OK, result);
 
+    // Night mode uses Relay 3 → DI4 → 1200 rpm (per manual)
     bool state;
     relay_control_get(RELAY_1, &state);
-    TEST_ASSERT_TRUE(state);
+    TEST_ASSERT_FALSE(state);
     relay_control_get(RELAY_2, &state);
     TEST_ASSERT_FALSE(state);
     relay_control_get(RELAY_3, &state);
-    TEST_ASSERT_FALSE(state);
+    TEST_ASSERT_TRUE(state);
 }
 
 TEST(relay_control_tests, test_pump_mode_day) {
     esp_err_t result = relay_control_set_pump_mode(2);
     TEST_ASSERT_EQUAL(ESP_OK, result);
 
+    // Day mode uses Relay 2 → DI3 → 2400 rpm (per manual)
     bool state;
     relay_control_get(RELAY_1, &state);
     TEST_ASSERT_FALSE(state);
@@ -114,13 +116,14 @@ TEST(relay_control_tests, test_pump_mode_backwash) {
     esp_err_t result = relay_control_set_pump_mode(3);
     TEST_ASSERT_EQUAL(ESP_OK, result);
 
+    // Backwash mode uses Relay 1 → DI2 → 2900 rpm (per manual)
     bool state;
     relay_control_get(RELAY_1, &state);
-    TEST_ASSERT_FALSE(state);
+    TEST_ASSERT_TRUE(state);
     relay_control_get(RELAY_2, &state);
     TEST_ASSERT_FALSE(state);
     relay_control_get(RELAY_3, &state);
-    TEST_ASSERT_TRUE(state);
+    TEST_ASSERT_FALSE(state);
 }
 
 TEST(relay_control_tests, test_invalid_pump_mode) {

@@ -63,11 +63,11 @@ static const char *mode_to_string(pump_mode_t mode) {
         case PUMP_MODE_OFF:
             return "OFF";
         case PUMP_MODE_NIGHT:
-            return "Night";
+            return "Low";
         case PUMP_MODE_DAY:
-            return "Day";
+            return "Medium";
         case PUMP_MODE_BACKWASH:
-            return "Backwash";
+            return "High";
         default:
             return "Unknown";
     }
@@ -244,11 +244,11 @@ static esp_err_t dashboard_get_handler(httpd_req_t *req) {
                     BUF_SIZE - len,
                     "</div>"
                     "<div class=\"legend\">"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#90cdf4\"></div>Night "
+                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#90cdf4\"></div>Low "
                     "(1400 RPM)</div>"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#faf089\"></div>Day (2000 "
-                    "RPM)</div>"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#fbd38d\"></div>Backwash "
+                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#faf089\"></div>Medium "
+                    "(2000 RPM)</div>"
+                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#fbd38d\"></div>High "
                     "(2900 RPM)</div>"
                     "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#e2e8f0\"></div>Off</div>"
                     "</div>"

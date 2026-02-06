@@ -109,7 +109,7 @@ esp_err_t optimizer_compute_daily(const price_interval_t prices[PRICE_INTERVALS_
 
     if (valid_slot_count == 0) {
         ESP_LOGW(TAG, "No valid prices available, using fallback schedule");
-        // Fallback: run NIGHT mode during typical cheap hours (00-06 excluded, so start of op hours)
+        // Fallback: run LOW mode during typical cheap hours (00-06 excluded, so start of op hours)
         for (int i = op_start_slot; i < op_start_slot + 32 && i < op_end_slot; i++) {
             schedule->slot_modes[i] = PUMP_MODE_NIGHT;
         }
@@ -122,38 +122,38 @@ esp_err_t optimizer_compute_daily(const price_interval_t prices[PRICE_INTERVALS_
     // Sort slots by price (cheapest first)
     qsort(slots, num_op_slots, sizeof(slot_info_t), compare_slots_by_price);
 
-    // Phase 1: Assign NIGHT mode to ALL operating slots
+    // Phase 1: Assign LOW mode to ALL operating slots
     // This gives us the maximum efficiency per liter but may not meet volume target
     int32_t night_volume_per_slot = s_mode_specs[PUMP_MODE_NIGHT].flow_liters_per_slot;
     int32_t backwash_volume_per_slot = s_mode_specs[PUMP_MODE_BACKWASH].flow_liters_per_slot;
 
-    // If we run NIGHT for all op slots: num_op_slots * 1400 L = 89,600 L (for 64 slots)
+    // If we run LOW for all op slots: num_op_slots * 1400 L = 89,600 L (for 64 slots)
     int32_t max_night_volume = num_op_slots * night_volume_per_slot;
 
     // Calculate volume shortfall
     int32_t shortfall = volume_target - max_night_volume;
     ESP_LOGI(TAG,
-             "Target: %ld L, Max NIGHT: %ld L, Shortfall: %ld L",
+             "Target: %ld L, Max LOW: %ld L, Shortfall: %ld L",
              (long)volume_target,
              (long)max_night_volume,
              (long)shortfall);
 
-    // Initialize all op slots to NIGHT mode
+    // Initialize all op slots to LOW mode
     for (int i = op_start_slot; i < op_end_slot; i++) {
         schedule->slot_modes[i] = PUMP_MODE_NIGHT;
     }
 
-    // Phase 2: Upgrade cheapest NIGHT slots to BACKWASH to fill volume gap
-    // NIGHT→BACKWASH adds (3600 - 1400) = 2200 L per slot
+    // Phase 2: Upgrade cheapest LOW slots to HIGH to fill volume gap
+    // LOW→HIGH adds (3600 - 1400) = 2200 L per slot
     int32_t extra_volume_per_upgrade = backwash_volume_per_slot - night_volume_per_slot;
     int upgrades_needed = 0;
 
     if (shortfall > 0) {
         upgrades_needed = (shortfall + extra_volume_per_upgrade - 1) / extra_volume_per_upgrade; // Ceiling division
-        ESP_LOGI(TAG, "Need %d BACKWASH upgrades to meet volume target", upgrades_needed);
+        ESP_LOGI(TAG, "Need %d HIGH upgrades to meet volume target", upgrades_needed);
     }
 
-    // Upgrade the cheapest slots from NIGHT to BACKWASH
+    // Upgrade the cheapest slots from LOW to HIGH
     int upgrades_done = 0;
     for (int i = 0; i < num_op_slots && upgrades_done < upgrades_needed; i++) {
         // Skip slots with invalid prices
@@ -204,7 +204,7 @@ esp_err_t optimizer_compute_daily(const price_interval_t prices[PRICE_INTERVALS_
         }
     }
 
-    ESP_LOGI(TAG, "Schedule computed: %d NIGHT + %d DAY + %d BACKWASH slots", night_count, day_count, backwash_count);
+    ESP_LOGI(TAG, "Schedule computed: %d LOW + %d MEDIUM + %d HIGH slots", night_count, day_count, backwash_count);
     ESP_LOGI(TAG, "Total volume: %ld L, Estimated cost: %.2f SEK", (long)total_volume, total_cost);
 
     free(slots);

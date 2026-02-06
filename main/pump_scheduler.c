@@ -133,9 +133,9 @@ static void apply_scheduled_mode(int current_slot) {
             ESP_LOGI(TAG,
                      "Slot %d: Starting pump in %s mode",
                      current_slot,
-                     target_mode == PUMP_MODE_NIGHT      ? "NIGHT"
-                     : target_mode == PUMP_MODE_DAY      ? "DAY"
-                     : target_mode == PUMP_MODE_BACKWASH ? "BACKWASH"
+                     target_mode == PUMP_MODE_NIGHT      ? "LOW"
+                     : target_mode == PUMP_MODE_DAY      ? "MEDIUM"
+                     : target_mode == PUMP_MODE_BACKWASH ? "HIGH"
                                                          : "UNKNOWN");
             pump_controller_set_mode(target_mode);
             pump_controller_start();
@@ -144,9 +144,9 @@ static void apply_scheduled_mode(int current_slot) {
             ESP_LOGI(TAG,
                      "Slot %d: Changing mode to %s",
                      current_slot,
-                     target_mode == PUMP_MODE_NIGHT      ? "NIGHT"
-                     : target_mode == PUMP_MODE_DAY      ? "DAY"
-                     : target_mode == PUMP_MODE_BACKWASH ? "BACKWASH"
+                     target_mode == PUMP_MODE_NIGHT      ? "LOW"
+                     : target_mode == PUMP_MODE_DAY      ? "MEDIUM"
+                     : target_mode == PUMP_MODE_BACKWASH ? "HIGH"
                                                          : "UNKNOWN");
             pump_controller_set_mode(target_mode);
         }
@@ -208,9 +208,9 @@ void pump_scheduler_task(void *pvParameters) {
             ESP_LOGI(TAG,
                      "Status: %s, Mode: %s, Slot: %d, Runtime: %d min, Cost: %.2f SEK",
                      s_pump_running ? "RUNNING" : "STOPPED",
-                     status.mode == PUMP_MODE_NIGHT      ? "NIGHT"
-                     : status.mode == PUMP_MODE_DAY      ? "DAY"
-                     : status.mode == PUMP_MODE_BACKWASH ? "BACKWASH"
+                     status.mode == PUMP_MODE_NIGHT      ? "LOW"
+                     : status.mode == PUMP_MODE_DAY      ? "MEDIUM"
+                     : status.mode == PUMP_MODE_BACKWASH ? "HIGH"
                                                          : "OFF",
                      current_slot,
                      s_daily_runtime_minutes,

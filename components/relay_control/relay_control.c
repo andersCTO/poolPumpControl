@@ -101,17 +101,17 @@ esp_err_t relay_control_set_pump_mode(int mode) {
         case 0: // OFF
             ESP_LOGI(TAG, "Pump mode set to OFF");
             break;
-        case 1: // Night mode - Low speed via DI4
+        case 1: // Low speed via DI4
             relay_control_set(RELAY_3, true);
-            ESP_LOGI(TAG, "Pump mode set to NIGHT (1200 RPM via DI4)");
+            ESP_LOGI(TAG, "Pump mode set to LOW (1200 RPM via DI4)");
             break;
-        case 2: // Day mode - Medium speed via DI3
+        case 2: // Medium speed via DI3
             relay_control_set(RELAY_2, true);
-            ESP_LOGI(TAG, "Pump mode set to DAY (2400 RPM via DI3)");
+            ESP_LOGI(TAG, "Pump mode set to MEDIUM (2400 RPM via DI3)");
             break;
-        case 3: // Backwash mode - High speed via DI2
+        case 3: // High speed via DI2
             relay_control_set(RELAY_1, true);
-            ESP_LOGI(TAG, "Pump mode set to BACKWASH (2900 RPM via DI2)");
+            ESP_LOGI(TAG, "Pump mode set to HIGH (2900 RPM via DI2)");
             break;
         default:
             ESP_LOGE(TAG, "Invalid pump mode: %d", mode);

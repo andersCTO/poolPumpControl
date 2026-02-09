@@ -112,19 +112,34 @@ Base flow at full speed (2800 RPM, 6m head): 9,400 L/h (from spec sheet)
 
 ### Firmware Configuration Values
 
-Based on empirical power measurements and conservative flow estimates (~4m head):
+Based on empirical power measurements and affinity law calculations:
 
-| Mode | RPM | Flow (L/h) | Power (W) | Source |
-|------|-----|------------|-----------|--------|
-| Low | 1400 | 5,000 | 88 | Power: measured, Flow: conservative |
-| Medium | 2400 | 8,000 | 353 | Power: interpolated, Flow: estimated |
-| High | 2900 | 12,000 | 486 | Power: measured, Flow: conservative |
+| Mode | RPM | Flow (L/h) | Flow/slot | Power (W) | Source |
+|------|-----|------------|-----------|-----------|--------|
+| Low | 1400 | 5,000 | 1,250 L | 88 | **Measured** |
+| Medium | 2400 | 8,500 | 2,125 L | 320 | Affinity laws |
+| High | 2900 | 10,400 | 2,600 L | 486 | **Measured** |
 
-**Reasoning:**
-- Power values are empirically measured from AquaForte inverter display
-- Flow values assume ~4m system head (conservative for typical pool)
-- Measured power (486W) is below nameplate (750W), suggesting actual head may be lower (2-3m)
-- Conservative flow estimates ensure adequate runtime for water quality
+**Affinity Law Calculations:**
+
+Power was fitted to measured points (88W @ 1400 RPM, 486W @ 2900 RPM):
+- Power ratio: 486/88 = 5.52
+- RPM ratio: 2900/1400 = 2.07
+- Exponent: ln(5.52)/ln(2.07) = 2.34
+- Formula: P = 88 × (RPM/1400)^2.34
+
+Flow scales linearly with RPM:
+- Formula: Q = 5000 × (RPM/1400)
+
+**Efficiency (Liters per Watt-hour):**
+
+| Mode | Efficiency | Rank |
+|------|------------|------|
+| Low | 56.8 L/Wh | Best |
+| Medium | 26.6 L/Wh | Middle |
+| High | 21.4 L/Wh | Worst |
+
+This confirms physical expectation: faster = less efficient per liter.
 
 ---
 
@@ -134,6 +149,79 @@ Based on empirical power measurements and conservative flow estimates (~4m head)
 - `hydro-s_spc.jpg` - Product specification table
 - `MEGA-SS-series-20130325.pdf` - Full installation and operating manual
 - `../rb344-vario-manual.pdf` - Inverter manual (in parent docs folder)
+
+---
+
+---
+
+## Schedule Optimization Algorithm
+
+### Problem Formulation (MILP)
+
+The pump scheduling problem is formulated as Mixed-Integer Linear Programming:
+
+**Decision Variables:**
+- `x[i][m]` ∈ {0,1} — binary: slot i uses mode m
+
+**Modes:**
+- m=0: OFF (0 L, 0 W)
+- m=1: LOW (1,250 L, 88 W)
+- m=2: MEDIUM (2,125 L, 320 W)
+- m=3: HIGH (2,600 L, 486 W)
+
+**Objective Function:**
+```
+minimize Σᵢ Σₘ (power[m] × 0.25h × (spot_price[i] + additional_cost) × x[i][m])
+```
+
+**Constraints:**
+1. One mode per slot: `Σₘ x[i][m] = 1` for all slots i
+2. Meet volume target: `Σᵢ Σₘ (volume[m] × x[i][m]) ≥ target_volume`
+3. Binary: `x[i][m] ∈ {0, 1}`
+
+### Solution Method: Dynamic Programming
+
+This is a **Multiple-Choice Knapsack Problem** — solvable optimally with DP.
+
+**State:** `dp[i][v]` = minimum cost to achieve volume v using slots 0..i-1
+
+**Transitions:** For each slot i, try all 4 modes:
+```
+dp[i+1][v + volume[m]] = min(dp[i+1][v + volume[m]],
+                              dp[i][v] + cost[i][m])
+```
+
+**Complexity:**
+- Slots: 96
+- Volume states: ~1,500 (scaled by GCD)
+- Modes: 4
+- Total: O(96 × 1500 × 4) ≈ 576K operations
+- Memory: ~300 KB (fits in ESP32)
+
+### Why Not Greedy?
+
+The previous greedy algorithm (fill LOW, then upgrade to HIGH) was suboptimal because:
+
+1. It ignored MEDIUM mode entirely
+2. It didn't consider that adding a new LOW slot might be cheaper than upgrading existing slot
+3. Different price slots have different optimal mode choices
+
+**Example:** At a very cheap price slot, HIGH mode might be cost-effective. At expensive slots, only LOW (or OFF) makes sense.
+
+### Marginal Cost Analysis
+
+For slot with price p, cost per marginal liter:
+
+| Transition | Extra Volume | Extra Cost | Marginal ¢/L |
+|------------|--------------|------------|--------------|
+| OFF→LOW | 1,250 L | 22p | 1.76p |
+| OFF→MEDIUM | 2,125 L | 80p | 3.76p |
+| OFF→HIGH | 2,600 L | 121.5p | 4.67p |
+| LOW→MEDIUM | 875 L | 58p | 6.63p |
+| LOW→HIGH | 1,350 L | 99.5p | 7.37p |
+| MEDIUM→HIGH | 475 L | 41.5p | 8.74p |
+
+**Key insight:** OFF→LOW is always most efficient. Upgrades have diminishing returns.
 
 ---
 

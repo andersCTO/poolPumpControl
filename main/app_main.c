@@ -50,12 +50,14 @@ void app_main(void) {
     price_fetcher_init();
     web_server_init();
 
+    // Initialize SNTP for time sync (required by scheduler regardless of WiFi source)
+    init_sntp();
+
     // Connect to WiFi if credentials are configured
 #ifdef CONFIG_POOL_PUMP_WIFI_SSID
     if (strlen(CONFIG_POOL_PUMP_WIFI_SSID) > 0) {
         ESP_LOGI(TAG, "Connecting to WiFi: %s", CONFIG_POOL_PUMP_WIFI_SSID);
         wifi_manager_connect(CONFIG_POOL_PUMP_WIFI_SSID, CONFIG_POOL_PUMP_WIFI_PASSWORD);
-        init_sntp();
     } else {
         ESP_LOGW(TAG, "No WiFi credentials configured - use BLE to provision");
     }

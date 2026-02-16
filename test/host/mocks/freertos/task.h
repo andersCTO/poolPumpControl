@@ -7,6 +7,8 @@ typedef void *TaskHandle_t;
 
 static inline void vTaskDelay(TickType_t xTicksToDelay) { (void)xTicksToDelay; }
 
+static inline void vTaskDelete(TaskHandle_t xTaskToDelete) { (void)xTaskToDelete; }
+
 static inline void vTaskDelayUntil(TickType_t *pxPreviousWakeTime, TickType_t xTimeIncrement) {
     (void)pxPreviousWakeTime;
     (void)xTimeIncrement;

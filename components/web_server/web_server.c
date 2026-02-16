@@ -154,72 +154,75 @@ static esp_err_t dashboard_get_handler(httpd_req_t *req) {
     }
 
     int len = 0;
-    len += snprintf(buf + len, BUF_SIZE - len, "%s", DASHBOARD_HTML_START);
+
+// Safe snprintf accumulator: clamps len to BUF_SIZE to prevent overflow
+#define SNPRINTF_SAFE(fmt, ...)                                                                                        \
+    do {                                                                                                               \
+        if (len < BUF_SIZE) {                                                                                          \
+            int _w = snprintf(buf + len, BUF_SIZE - len, fmt, ##__VA_ARGS__);                                          \
+            if (_w > 0) {                                                                                              \
+                len += _w;                                                                                             \
+                if (len > BUF_SIZE) len = BUF_SIZE;                                                                    \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
+
+    SNPRINTF_SAFE("%s", DASHBOARD_HTML_START);
 
     // Pump status card
-    len += snprintf(buf + len,
-                    BUF_SIZE - len,
-                    "<div class=\"card\">"
-                    "<div class=\"label\">Pump Status</div>"
-                    "<div class=\"value %s\">%s</div>"
-                    "<div class=\"label\">Mode</div>"
-                    "<div class=\"value\">%s (%d RPM)</div>"
-                    "</div>",
-                    pump_class,
-                    pump_text,
-                    mode_str,
-                    pump_status.current_rpm);
+    SNPRINTF_SAFE("<div class=\"card\">"
+                  "<div class=\"label\">Pump Status</div>"
+                  "<div class=\"value %s\">%s</div>"
+                  "<div class=\"label\">Mode</div>"
+                  "<div class=\"value\">%s (%d RPM)</div>"
+                  "</div>",
+                  pump_class,
+                  pump_text,
+                  mode_str,
+                  pump_status.current_rpm);
 
     // Runtime card
-    len += snprintf(buf + len,
-                    BUF_SIZE - len,
-                    "<div class=\"card grid\">"
-                    "<div><div class=\"label\">Runtime Today</div>"
-                    "<div class=\"value\">%d min</div></div>"
-                    "<div><div class=\"label\">Current Time</div>"
-                    "<div class=\"value\">%02d:%02d</div></div>"
-                    "</div>",
-                    sched_status.daily_runtime_minutes,
-                    current_hour,
-                    timeinfo.tm_min);
+    SNPRINTF_SAFE("<div class=\"card grid\">"
+                  "<div><div class=\"label\">Runtime Today</div>"
+                  "<div class=\"value\">%d min</div></div>"
+                  "<div><div class=\"label\">Current Time</div>"
+                  "<div class=\"value\">%02d:%02d</div></div>"
+                  "</div>",
+                  sched_status.daily_runtime_minutes,
+                  current_hour,
+                  timeinfo.tm_min);
 
     // Schedule card - 15-minute intervals visualization
-    len += snprintf(buf + len,
-                    BUF_SIZE - len,
-                    "<div class=\"card\">"
-                    "<h2>Optimized Pump Schedule</h2>");
+    SNPRINTF_SAFE("<div class=\"card\">"
+                  "<h2>Optimized Pump Schedule</h2>");
 
     // Schedule summary if available
     if (has_schedule && opt_schedule.valid) {
-        len += snprintf(buf + len,
-                        BUF_SIZE - len,
-                        "<div class=\"summary\">"
-                        "<div class=\"grid4\">"
-                        "<div><div class=\"label\">Target</div>"
-                        "<div class=\"value\">%ld L</div></div>"
-                        "<div><div class=\"label\">Planned</div>"
-                        "<div class=\"value\">%ld L</div></div>"
-                        "<div><div class=\"label\">Est. Cost</div>"
-                        "<div class=\"value\">%.2f SEK</div></div>"
-                        "<div><div class=\"label\">Slot</div>"
-                        "<div class=\"value\">%d/95</div></div>"
-                        "</div></div>",
-                        (long)optimizer_get_volume_target(),
-                        (long)opt_schedule.total_volume_liters,
-                        opt_schedule.total_cost_cents / 100.0f,
-                        current_interval);
+        SNPRINTF_SAFE("<div class=\"summary\">"
+                      "<div class=\"grid4\">"
+                      "<div><div class=\"label\">Target</div>"
+                      "<div class=\"value\">%ld L</div></div>"
+                      "<div><div class=\"label\">Planned</div>"
+                      "<div class=\"value\">%ld L</div></div>"
+                      "<div><div class=\"label\">Est. Cost</div>"
+                      "<div class=\"value\">%.2f SEK</div></div>"
+                      "<div><div class=\"label\">Slot</div>"
+                      "<div class=\"value\">%d/95</div></div>"
+                      "</div></div>",
+                      (long)optimizer_get_volume_target(),
+                      (long)opt_schedule.total_volume_liters,
+                      opt_schedule.total_cost_cents / 100.0f,
+                      current_interval);
     }
 
-    len += snprintf(buf + len, BUF_SIZE - len, "<div class=\"sched\">");
+    SNPRINTF_SAFE("<div class=\"sched\">");
 
     // Render 24 rows (one per hour), each with 4 quarter-hour slots
     for (int h = 0; h < 24; h++) {
-        len += snprintf(buf + len,
-                        BUF_SIZE - len,
-                        "<div class=\"sched-row\">"
-                        "<div class=\"sched-hour\">%02d</div>"
-                        "<div class=\"sched-slots\">",
-                        h);
+        SNPRINTF_SAFE("<div class=\"sched-row\">"
+                      "<div class=\"sched-hour\">%02d</div>"
+                      "<div class=\"sched-slots\">",
+                      h);
         for (int q = 0; q < 4; q++) {
             int idx = h * 4 + q;
             const char *slot_class;
@@ -234,116 +237,104 @@ static esp_err_t dashboard_get_handler(httpd_req_t *req) {
             }
 
             const char *now_class = (idx == current_interval) ? " now" : "";
-            len += snprintf(buf + len, BUF_SIZE - len, "<div class=\"slot %s%s\"></div>", slot_class, now_class);
+            SNPRINTF_SAFE("<div class=\"slot %s%s\"></div>", slot_class, now_class);
         }
-        len += snprintf(buf + len, BUF_SIZE - len, "</div></div>");
+        SNPRINTF_SAFE("</div></div>");
     }
 
     // Legend
-    len += snprintf(buf + len,
-                    BUF_SIZE - len,
-                    "</div>"
-                    "<div class=\"legend\">"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#90cdf4\"></div>Low "
-                    "(1400 RPM)</div>"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#faf089\"></div>Medium "
-                    "(2000 RPM)</div>"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#fbd38d\"></div>High "
-                    "(2900 RPM)</div>"
-                    "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#e2e8f0\"></div>Off</div>"
-                    "</div>"
-                    "</div>");
+    SNPRINTF_SAFE("</div>"
+                  "<div class=\"legend\">"
+                  "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#90cdf4\"></div>Low "
+                  "(1400 RPM)</div>"
+                  "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#faf089\"></div>Medium "
+                  "(2000 RPM)</div>"
+                  "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#fbd38d\"></div>High "
+                  "(2900 RPM)</div>"
+                  "<div class=\"legend-item\"><div class=\"legend-box\" style=\"background:#e2e8f0\"></div>Off</div>"
+                  "</div>"
+                  "</div>");
 
     // Price card with area and current price
     const char *price_class = get_price_class(current_price, PRICE_THRESHOLD_LOW, PRICE_THRESHOLD_HIGH);
-    len += snprintf(buf + len,
-                    BUF_SIZE - len,
-                    "<div class=\"card\">"
-                    "<h2>Electricity Price - %s</h2>"
-                    "<div class=\"grid\">"
-                    "<div><div class=\"label\">Current Price</div>"
-                    "<div class=\"value %s\">%.2f SEK/kWh</div></div>"
-                    "<div><div class=\"label\">Period</div>"
-                    "<div class=\"value\">%s</div></div>"
-                    "</div>",
-                    PRICE_AREA,
-                    price_class,
-                    current_price,
-                    current_price < 0 ? "No data"
-                                      : (current_price < PRICE_THRESHOLD_LOW
-                                             ? "Low"
-                                             : (current_price > PRICE_THRESHOLD_HIGH ? "High" : "Medium")));
+    SNPRINTF_SAFE("<div class=\"card\">"
+                  "<h2>Electricity Price - %s</h2>"
+                  "<div class=\"grid\">"
+                  "<div><div class=\"label\">Current Price</div>"
+                  "<div class=\"value %s\">%.2f SEK/kWh</div></div>"
+                  "<div><div class=\"label\">Period</div>"
+                  "<div class=\"value\">%s</div></div>"
+                  "</div>",
+                  PRICE_AREA,
+                  price_class,
+                  current_price,
+                  current_price < 0 ? "No data"
+                                    : (current_price < PRICE_THRESHOLD_LOW
+                                           ? "Low"
+                                           : (current_price > PRICE_THRESHOLD_HIGH ? "High" : "Medium")));
 
     // Statistics
     if (stats.valid_hours > 0) {
-        len += snprintf(buf + len,
-                        BUF_SIZE - len,
-                        "<div class=\"grid3\" style=\"margin-top:12px\">"
-                        "<div><div class=\"label\">Min (%02d:00)</div>"
-                        "<div class=\"value low\">%.2f</div></div>"
-                        "<div><div class=\"label\">Avg</div>"
-                        "<div class=\"value mid\">%.2f</div></div>"
-                        "<div><div class=\"label\">Max (%02d:00)</div>"
-                        "<div class=\"value high\">%.2f</div></div>"
-                        "</div>",
-                        stats.min_hour,
-                        stats.min_price,
-                        stats.avg_price,
-                        stats.max_hour,
-                        stats.max_price);
+        SNPRINTF_SAFE("<div class=\"grid3\" style=\"margin-top:12px\">"
+                      "<div><div class=\"label\">Min (%02d:00)</div>"
+                      "<div class=\"value low\">%.2f</div></div>"
+                      "<div><div class=\"label\">Avg</div>"
+                      "<div class=\"value mid\">%.2f</div></div>"
+                      "<div><div class=\"label\">Max (%02d:00)</div>"
+                      "<div class=\"value high\">%.2f</div></div>"
+                      "</div>",
+                      stats.min_hour,
+                      stats.min_price,
+                      stats.avg_price,
+                      stats.max_hour,
+                      stats.max_price);
     }
 
     // 24-hour price grid
-    len += snprintf(buf + len, BUF_SIZE - len, "<div class=\"prices\">");
+    SNPRINTF_SAFE("<div class=\"prices\">");
     for (int h = 0; h < 24; h++) {
         const char *hour_class = get_price_class(prices[h].price_sek_kwh, PRICE_THRESHOLD_LOW, PRICE_THRESHOLD_HIGH);
         const char *now_class = (h == current_hour) ? " now" : "";
         if (prices[h].price_sek_kwh >= 0) {
-            len += snprintf(buf + len,
-                            BUF_SIZE - len,
-                            "<div class=\"hour %s%s\"><div class=\"h\">%02d</div><div class=\"p\">%.2f</div></div>",
-                            hour_class,
-                            now_class,
-                            h,
-                            prices[h].price_sek_kwh);
+            SNPRINTF_SAFE("<div class=\"hour %s%s\"><div class=\"h\">%02d</div><div class=\"p\">%.2f</div></div>",
+                          hour_class,
+                          now_class,
+                          h,
+                          prices[h].price_sek_kwh);
         } else {
-            len += snprintf(buf + len,
-                            BUF_SIZE - len,
-                            "<div class=\"hour mid%s\"><div class=\"h\">%02d</div><div class=\"p\">-</div></div>",
-                            now_class,
-                            h);
+            SNPRINTF_SAFE(
+                "<div class=\"hour mid%s\"><div class=\"h\">%02d</div><div class=\"p\">-</div></div>", now_class, h);
         }
     }
-    len += snprintf(buf + len, BUF_SIZE - len, "</div>");
+    SNPRINTF_SAFE("</div>");
 
     // Last update
     if (refresh_state.last_fetch_time > 0) {
         struct tm fetch_time;
         localtime_r(&refresh_state.last_fetch_time, &fetch_time);
-        len += snprintf(buf + len,
-                        BUF_SIZE - len,
-                        "<div class=\"small\" style=\"margin-top:8px\">Updated: %02d:%02d (%d hours)</div>",
-                        fetch_time.tm_hour,
-                        fetch_time.tm_min,
-                        valid_hours);
+        SNPRINTF_SAFE("<div class=\"small\" style=\"margin-top:8px\">Updated: %02d:%02d (%d hours)</div>",
+                      fetch_time.tm_hour,
+                      fetch_time.tm_min,
+                      valid_hours);
     }
 
-    len += snprintf(buf + len, BUF_SIZE - len, "</div>"); // Close price card
+    SNPRINTF_SAFE("</div>"); // Close price card
 
     // WiFi status
-    len += snprintf(buf + len,
-                    BUF_SIZE - len,
-                    "<div class=\"card\">"
-                    "<div class=\"label\">WiFi</div>"
-                    "<div class=\"value\">%s</div>"
-                    "</div>",
-                    wifi_ok ? "Connected" : "Disconnected");
+    SNPRINTF_SAFE("<div class=\"card\">"
+                  "<div class=\"label\">WiFi</div>"
+                  "<div class=\"value\">%s</div>"
+                  "</div>",
+                  wifi_ok ? "Connected" : "Disconnected");
 
-    len += snprintf(buf + len, BUF_SIZE - len, "%s", DASHBOARD_HTML_END);
+    SNPRINTF_SAFE("%s", DASHBOARD_HTML_END);
 
     httpd_resp_set_type(req, "text/html");
     httpd_resp_send(req, buf, len);
     free(buf);
+
+#undef SNPRINTF_SAFE
+
     return ESP_OK;
 }
 

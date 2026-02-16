@@ -1,7 +1,9 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include <stdio.h>
+#include <string.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -12,6 +14,9 @@
 #include "wifi_manager.h"
 
 static const char *TAG = "PUMP_SCHEDULER";
+
+// Mutex for thread-safe access to scheduler state (read by web_server task)
+static SemaphoreHandle_t s_scheduler_mutex = NULL;
 
 static bool s_pump_running = false;
 static int s_daily_runtime_minutes = 0;
@@ -156,6 +161,14 @@ static void apply_scheduled_mode(int current_slot) {
 void pump_scheduler_task(void *pvParameters) {
     ESP_LOGI(TAG, "Pump scheduler task started");
 
+    // Create mutex for thread-safe state access
+    s_scheduler_mutex = xSemaphoreCreateMutex();
+    if (s_scheduler_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create scheduler mutex");
+        vTaskDelete(NULL);
+        return;
+    }
+
     // Initialize optimizer with default config
     optimizer_config_t opt_config = {
         .pool_volume_liters = POOL_VOLUME_LITERS,
@@ -175,6 +188,9 @@ void pump_scheduler_task(void *pvParameters) {
         struct tm timeinfo;
         time(&now);
         localtime_r(&now, &timeinfo);
+
+        // Hold mutex while modifying shared state (read by web_server task)
+        xSemaphoreTake(s_scheduler_mutex, portMAX_DELAY);
 
         // Reset daily counter at midnight
         if (timeinfo.tm_hour == 0 && last_hour == 23) {
@@ -199,7 +215,9 @@ void pump_scheduler_task(void *pvParameters) {
             s_daily_runtime_minutes++;
         }
 
-        // Log status every 15 minutes
+        xSemaphoreGive(s_scheduler_mutex);
+
+        // Log status every 15 minutes (outside mutex to avoid nested locks)
         static int log_counter = 0;
         if (++log_counter >= 15) {
             log_counter = 0;
@@ -225,19 +243,30 @@ void pump_scheduler_get_status(scheduler_status_t *status) {
     if (status == NULL) {
         return;
     }
-    status->pump_running = s_pump_running;
-    status->daily_runtime_minutes = s_daily_runtime_minutes;
-    status->current_hour = s_current_hour;
+    if (s_scheduler_mutex != NULL && xSemaphoreTake(s_scheduler_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        status->pump_running = s_pump_running;
+        status->daily_runtime_minutes = s_daily_runtime_minutes;
+        status->current_hour = s_current_hour;
+        xSemaphoreGive(s_scheduler_mutex);
+    } else {
+        ESP_LOGW(TAG, "Scheduler mutex timeout in get_status");
+        memset(status, 0, sizeof(scheduler_status_t));
+    }
 }
 
-// New function to expose schedule to web server
 bool pump_scheduler_get_schedule(optimizer_schedule_t *schedule) {
     if (schedule == NULL) {
         return false;
     }
-    if (s_schedule_computed) {
-        *schedule = s_today_schedule;
-        return true;
+    if (s_scheduler_mutex != NULL && xSemaphoreTake(s_scheduler_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        bool result = false;
+        if (s_schedule_computed) {
+            *schedule = s_today_schedule;
+            result = true;
+        }
+        xSemaphoreGive(s_scheduler_mutex);
+        return result;
     }
+    ESP_LOGW(TAG, "Scheduler mutex timeout in get_schedule");
     return false;
 }

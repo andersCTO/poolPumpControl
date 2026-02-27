@@ -73,16 +73,16 @@ cd test/host && bash run_tests.sh    # Build and run all host tests
 ```
 
 - **Test files**: `test/host/tests/` — test_relay_control, test_pump_controller, test_wifi_manager, test_nvs_storage, test_price_fetcher, test_web_server
-- **Mock headers**: `test/host/mocks/` — stateful mocks for gpio, wifi, nvs, http_client, http_server
+- **Mock headers**: `test/host/mocks/` — stateful mocks for gpio, wifi, nvs, http_client, http_server (includes `httpd_req_recv` mock for POST handler tests)
 - **Vendored deps**: Unity (`test/host/unity/`), cJSON (`test/host/vendor/cjson/`), fff (`test/host/fff.h`)
-- **47 test cases** across 6 test groups
+- **51 test cases** across 6 test groups
 - CI runs automatically via `host-tests.yml` on push/PR
 
 ## Architecture
 
 ### Boot sequence (`main/app_main.c`)
 
-NVS init → networking init → `config_init()` → `wifi_manager_init()` → `relay_control_init()` → `pump_controller_init()` → `price_fetcher_init()` → `web_server_init()` → spawns `pump_scheduler_task` (FreeRTOS task, priority 5).
+NVS init → networking init → `config_init()` → WiFi connect (NVS credentials checked first, Kconfig fallback) → `relay_control_init()` → `pump_controller_init()` → `price_fetcher_init()` → `web_server_init()` → spawns `pump_scheduler_task` (FreeRTOS task, priority 5).
 
 ### Scheduler loop (`main/pump_scheduler.c`)
 
@@ -100,7 +100,7 @@ Each component has its own `CMakeLists.txt` and exposes headers under `include/p
 | **wifi_manager** / **networking** | WiFi connection lifecycle |
 | **bluetooth_config** | BLE GATT server for mobile app configuration (service 0x00FF) |
 | **nvs_storage** / **storage** | Persistent config via ESP-IDF NVS |
-| **web_server** | HTTP dashboard and JSON status API (`GET /`, `GET /api/status`) |
+| **web_server** | HTTP dashboard (`GET /`), JSON API (`GET /api/status`), WiFi config (`GET /wifi`, `POST /api/wifi`) |
 | **scheduler** | Price-aware scheduling logic |
 | **sensors** | Temperature/flow sensor interfaces |
 
@@ -153,17 +153,20 @@ Global constants in `include/config.h`. Project-level Kconfig options in `Kconfi
 
 ### WiFi credentials
 
-Two options for configuring WiFi:
+Three options, checked in order on boot:
 
-**Option 1: Build-time configuration (for development)**
-```bash
-cp sdkconfig.local.example sdkconfig.local
-# Edit sdkconfig.local with your SSID and password
-idf.py menuconfig  # Or manually merge into sdkconfig.defaults
-```
+1. **NVS credentials** — If previously saved via web UI (`/wifi`) or BLE, used automatically.
+2. **Build-time Kconfig (for development)** — `cp sdkconfig.local.example sdkconfig.local`, edit SSID/password, rebuild.
+3. **BLE provisioning** — Connect to "PoolPump-ESP32" via BLE (service 0x00FF), write SSID to 0xFF01 and password to 0xFF02.
 
-**Option 2: BLE provisioning (for production)**
-Connect via BLE (service 0x00FF) and write credentials to characteristics 0xFF01 (SSID) and 0xFF02 (password).
+Once connected, navigate to `http://<device-ip>/wifi` to change WiFi credentials at runtime without reflashing. The web UI saves to NVS and triggers `wifi_manager_reconnect()`.
+
+## Related Projects
+
+All three projects share the same LilyGO T-Relay hardware and relay-to-inverter mapping:
+
+- **poolPumpMatter** (`~/development/poolPumpMatter`, `andersCTO/poolPumpMatter`) — Matter Fan device. Exposes pump as Off/Low/Medium/High to Apple Home/Google Home/Alexa. Uses esp-matter SDK + NimBLE commissioning. Scheduling delegated to Matter controller.
+- **poolPumpHA** (`~/development/poolPumpHA`, `andersCTO/poolPumpControlHA`) — MQTT with Home Assistant auto-discovery. Uses `select` entity for speed control (Off/Low/Medium/High). Config portal via SoftAP for WiFi/MQTT setup. Scheduling delegated to HA automations.
 
 ## Known Issues
 

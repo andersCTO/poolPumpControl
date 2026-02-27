@@ -1,262 +1,159 @@
-# Pool Pump Controller using LilyGO T-Relay ESP32
+# Pool Pump Controller
 
 [![ESP32 CI](https://github.com/andersCTO/poolPumpControl/actions/workflows/esp32-ci.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/esp32-ci.yml)
 [![Quality Checks](https://github.com/andersCTO/poolPumpControl/actions/workflows/quality-checks.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/quality-checks.yml)
+[![Host Tests](https://github.com/andersCTO/poolPumpControl/actions/workflows/host-tests.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/host-tests.yml)
 [![Test Suite](https://github.com/andersCTO/poolPumpControl/actions/workflows/test-suite.yml/badge.svg)](https://github.com/andersCTO/poolPumpControl/actions/workflows/test-suite.yml)
 
-This project automates the control of a pool circulation pump and heater to minimize electricity costs while maintaining proper water quality and temperature. It uses a [LilyGO T-Relay ESP32 module](https://github.com/Xinyuan-LilyGO/LilyGo-T-Relay) and connects to an **AquaForte VARIO+ II** (model Vario+ 1100) frequency inverter via digital output.
-
-## Project Goals
-
-1. **Automated pool water circulation** based on electricity prices.
-2. **Optimized pump speed control** via RS485 or digital relay control.
-3. **Future expansion** to include heater control and external sensors (e.g., temperature).
-4. **WiFi-connected** and fetches day-ahead electricity spot prices automatically.
-
----
-
-## Hardware
-
-- 🧠 **Microcontroller**: LilyGO T-Relay ESP32
-- 🔌 **Frequency Inverter**: AquaForte VARIO+ II (Vario+ 1100)
-- 🌀 **Pump**: Single-phase pump with permanent split capacitor motor (PSC)
-- 🔌 **Power**: 220-240V AC
-
----
-
-## Platform
-
-- **Firmware**: [Espressif IoT Development Framework (ESP-IDF)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/index.html)
-- **Development Environment**: Visual Studio Code with Espressif plugin
-- **Language**: C/C++
-
----
+ESP32 pool pump controller firmware that minimizes electricity costs by scheduling pump operation during the cheapest Nordpool spot price hours. Runs on a [LilyGO T-Relay](https://github.com/Xinyuan-LilyGO/LilyGo-T-Relay) board controlling an AquaForte VARIO+ II inverter via digital relay outputs.
 
 ## Features
 
-- ✅ Automatically connects to WiFi
-- 📈 Fetches 24h electricity price data from API
-- ⚙️ Controls pump speed (1400, 2000, 2900 RPM)
-- 🌡️ Can integrate outdoor temperature for smarter logic
-- ⏱️ Supports timed operation modes: Day, Night, Backwash
-- 💾 Remembers settings across reboots
-- 📊 Displays current RPM and power usage
-- 📱 **Bluetooth mobile configuration interface** (WiFi setup via BLE)
+- Fetches 24h Nordpool electricity spot prices and schedules pump operation in the cheapest hours
+- Price-aware optimizer selects both *when* and *at what speed* to run (96 x 15-min slots/day)
+- Three speed modes via relay-controlled inverter digital inputs: Low (1200 RPM), Medium (2400 RPM), High (2900 RPM)
+- Web dashboard with real-time status, schedule visualization, and price display (`GET /`)
+- JSON status API (`GET /api/status`)
+- Web-based WiFi reconfiguration (`GET /wifi`, `POST /api/wifi`) with NVS persistence
+- BLE GATT provisioning for initial WiFi setup via mobile app
+- NVS-first credential lookup on boot (NVS > Kconfig fallback)
+- Persistent configuration across reboots via NVS
 
----
+## Hardware
 
-## Mobile Configuration via Bluetooth
+| Component | Details |
+|-----------|---------|
+| Microcontroller | LilyGO T-Relay ESP32 (4MB flash) |
+| Inverter | AquaForte VARIO+ II (Vario+ 1100) |
+| Pump | Single-phase PSC motor |
+| Power | 220-240V AC |
 
-The system supports configuration through a mobile app using Bluetooth Low Energy (BLE). This allows for easy setup without needing to hardcode WiFi credentials.
+### Relay-to-Inverter Mapping
 
-### 🔵 Bluetooth Features
+Per the RB344 Vario manual (Section 5.4), each relay activates a fixed inverter speed:
 
-- **Initial Setup**: Configure WiFi SSID and password via mobile app
-- **Future Capabilities**: 
-  - Pump settings (speed, runtime schedules)
-  - Price thresholds configuration
-  - System status and diagnostics
-  - Schedule management
+| Relay | GPIO | Inverter DI | Speed | Mode |
+|-------|------|-------------|-------|------|
+| Relay 1 | 21 | DI2 → COM | 2900 RPM | Backwash (High) |
+| Relay 2 | 19 | DI3 → COM | 2400 RPM | Day (Medium) |
+| Relay 3 | 18 | DI4 → COM | 1200 RPM | Night (Low) |
+| Relay 4 | 5 | -- | -- | Available |
 
-### 📱 How to Use
+Only one digital input should be active at a time.
 
-1. **Power on the ESP32** - It will start advertising as "PoolPump-ESP32"
-2. **Open your mobile app** and scan for BLE devices
-3. **Connect to "PoolPump-ESP32"**
-4. **Send WiFi credentials** through the BLE interface
-5. **ESP32 connects to WiFi** and starts normal operation
+## Getting Started
 
-### 🔧 BLE Service Structure
+### Prerequisites
 
-The Bluetooth interface uses a custom GATT service (UUID: 0x00FF) with the following characteristics:
+- [ESP-IDF v5.4](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/)
+- LilyGO T-Relay ESP32 board
 
-| Characteristic | UUID | Type | Description |
-|----------------|------|------|-------------|
-| WiFi SSID | 0xFF01 | Write | Network name to connect to |
-| WiFi Password | 0xFF02 | Write | Network password |
-| Pump Settings | 0xFF03 | Read/Write | Pump speed and schedule settings |
-| Price Settings | 0xFF04 | Read/Write | Electricity price thresholds |
-| System Info | 0xFF05 | Read/Notify | Current system status |
-| Notifications | 0xFF06 | Notify | System messages and alerts |
+### Build and Flash
 
-### 📚 Documentation
+```bash
+source ~/esp/v5.4/esp-idf/export.sh
+idf.py build
+idf.py flash monitor
+```
 
-Detailed documentation for the Bluetooth interface is available in:
-- [`components/bluetooth_config/README.md`](components/bluetooth_config/README.md) - Complete API and usage guide (Swedish)
-- [`components/bluetooth_config/bluetooth_config.h`](components/bluetooth_config/bluetooth_config.h) - API reference
+### WiFi Configuration
 
-### 🔐 Security
+Three options, checked in order on boot:
 
-- BLE communication is encrypted
-- WiFi credentials are transmitted securely
-- Only one device can connect at a time
-- Automatic timeout after inactivity
+1. **NVS credentials** -- If previously saved via the web UI or BLE, used automatically on boot.
+2. **Build-time Kconfig** -- Copy `sdkconfig.local.example` to `sdkconfig.local`, edit WiFi SSID/password, rebuild.
+3. **BLE provisioning** -- Connect to "PoolPump-ESP32" via a BLE app and write SSID to characteristic 0xFF01 and password to 0xFF02 (GATT service 0x00FF).
 
----
+Once connected, navigate to `http://<device-ip>/wifi` to change WiFi credentials at any time without reflashing.
 
-## Inverter Configuration
+## Architecture
 
-The AquaForte Vario+ II supports:
-- **Speed ranges**: 1200–2900 RPM
-- **3 user-defined modes**:
-  - Night: 1400 RPM
-  - Day: 2000 RPM
-  - Backwash: 2900 RPM
-- **Self-priming**: 1 min at full speed on startup
-- **Timer support**: Up to 4 scheduled intervals per day
-- **External digital control** via COM + DI2/DI3/DI4
+### Boot Sequence
 
-📘 Refer to the [manual](docs/RELAY_ESP32.md) and the [Vario+ 1100 documentation](rb344-vario-manual.pdf) for wiring and configuration.
+NVS init → networking init → `config_init()` → WiFi connect (NVS or Kconfig) → `relay_control_init()` → `pump_controller_init()` → `price_fetcher_init()` → `web_server_init()` → `pump_scheduler_task` (FreeRTOS, priority 5)
 
----
+### Scheduler
 
-## Installation
+Runs every 60 seconds (`main/pump_scheduler.c`). Meets a daily water circulation volume target at minimum cost by selecting which 15-minute slots to run and at which speed, using Nordpool spot prices. Enforces operating hours and daily runtime bounds.
 
-1. Clone the repository.
-2. Set up your development environment with ESP-IDF and Visual Studio Code.
-3. Configure WiFi credentials and API endpoint for electricity prices.
-4. Connect the relay output to the digital input pins of the Vario+ II.
-5. Flash the firmware to your ESP32 T-Relay board.
+### Components
 
----
+| Component | Role |
+|-----------|------|
+| `relay_control` | GPIO management for 4 relays |
+| `pump_controller` | Pump state machine (OFF/NIGHT/DAY/BACKWASH) |
+| `price_fetcher` / `price_client` | Fetches and caches hourly Nordpool spot prices |
+| `optimizer` | Greedy volume-gap scheduling across 96 daily slots |
+| `scheduler` | Scheduling framework and slot management |
+| `wifi_manager` / `networking` | WiFi connection lifecycle and reconnect |
+| `bluetooth_config` | BLE GATT server for mobile provisioning |
+| `nvs_storage` / `storage` | Persistent config via ESP-IDF NVS |
+| `web_server` | HTTP dashboard, JSON API, WiFi config page |
+| `sensors` | Temperature/flow sensor interfaces |
 
-## Project Structure
-
-The firmware follows a standard ESP-IDF layout that keeps hardware access, networking, and business logic separated into reusable components:
+### Project Structure
 
 ```
 poolPumpControl/
-├── CMakeLists.txt           # Top-level project definition
-├── Kconfig.projbuild        # Configuration options exposed in menuconfig
 ├── main/
-│   ├── CMakeLists.txt
-│   └── main.c               # Entry point that starts the application core
+│   ├── app_main.c              # Boot sequence and initialization
+│   └── pump_scheduler.c        # Scheduler loop (60s tick)
+├── include/
+│   └── config.h                # Global constants
 ├── components/
-│   ├── app_core/            # High-level orchestration and state machine
-│   ├── bluetooth_config/    # BLE interface for mobile app configuration
-│   ├── networking/          # WiFi provisioning and connectivity helpers
-│   ├── price_client/        # Electricity price fetching logic
-│   ├── pump_driver/         # Relay and inverter control primitives
-│   ├── scheduler/           # Price-aware scheduling routines
-│   ├── sensors/             # Temperature and flow sensor interfaces
-│   └── storage/             # Persistent configuration helpers
-├── docs/
-│   └── RELAY_ESP32.md       # Hardware wiring notes (placeholder)
-└── .gitignore
+│   ├── relay_control/          # GPIO → relay control
+│   ├── pump_controller/        # Pump state machine and modes
+│   ├── price_fetcher/          # Nordpool price fetching and caching
+│   ├── optimizer/              # Price-aware scheduling algorithm
+│   ├── scheduler/              # Scheduling framework
+│   ├── wifi_manager/           # WiFi lifecycle and reconnect
+│   ├── bluetooth_config/       # BLE GATT provisioning
+│   ├── nvs_storage/            # NVS persistent storage
+│   ├── web_server/             # HTTP dashboard + API + WiFi config
+│   └── sensors/                # Sensor interfaces
+├── test/
+│   ├── unit/                   # ESP32 target tests (Unity)
+│   ├── integration/            # ESP32 integration tests
+│   └── host/                   # Host-based tests (no ESP-IDF required)
+└── docs/                       # Hardware docs, architecture diagrams
 ```
 
-Each component exposes public headers under `include/pool_pump/` so that functionality can be shared without tight coupling. This structure scales with additional features such as heater control or OTA updates by adding dedicated components.
+## Testing
 
----
+### Host-Based Tests
 
-## CI/CD Pipeline
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-### Workflows
-
-- **ESP32 CI** (`esp32-ci.yml`): Builds the project and verifies compilation
-- **Quality Checks** (`quality-checks.yml`): Runs static analysis, formatting checks, and code quality validation
-- **Test Suite** (`test-suite.yml`): Validates test compilation and structure (tests run on hardware)
-- **Release** (`release.yml`): Creates automated releases with firmware binaries
-
-### Quality Assurance
-
-- **Code Formatting**: Enforced via clang-format with LLVM style
-- **Static Analysis**: cppcheck for common C/C++ issues
-- **Build Verification**: Ensures all components compile successfully
-- **Test Validation**: Verifies test framework integrity
-
-### Building Locally
+Run on Linux/macOS without ESP-IDF. Compile real component source against mock ESP-IDF headers using fff (Fake Function Framework).
 
 ```bash
-# Setup ESP-IDF environment
-source ~/esp/esp-idf/export.sh
-
-# Build the project
-idf.py build
-
-# Flash to ESP32
-idf.py flash
-
-# Monitor serial output
-idf.py monitor
+cd test/host && bash run_tests.sh
 ```
 
-### Running Tests
+51 test cases across 6 test groups: relay_control, pump_controller, wifi_manager, nvs_storage, price_fetcher, web_server.
 
-Tests are designed to run on ESP32 hardware. After flashing:
+### ESP32 Target Tests
 
-```bash
-idf.py monitor
-```
+71 test cases using the Unity framework. Execute on ESP32 hardware. CI validates compilation and structure.
 
-Test results will be displayed in the serial console.
+## CI/CD
 
----
+Five GitHub Actions workflows:
 
-## Mobile App Development
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `esp32-ci.yml` | Push/PR | ESP-IDF build validation |
+| `host-tests.yml` | Push/PR | Host-based unit tests (gcc, no ESP-IDF) |
+| `quality-checks.yml` | Push/PR | clang-format + cppcheck |
+| `test-suite.yml` | Daily + Push/PR | Test structure validation |
+| `release.yml` | `v*.*.*` tags | GitHub release with firmware binaries |
 
-To create a mobile app for controlling the pool pump via Bluetooth:
+## Related Projects
 
-### React Native Example
+| Repository | Description |
+|------------|-------------|
+| [poolPumpMatter](https://github.com/andersCTO/poolPumpMatter) | Matter (Fan device) firmware -- exposes pump as Off/Low/Medium/High to Apple Home/Google Home/Alexa |
+| [poolPumpControlHA](https://github.com/andersCTO/poolPumpControlHA) | Home Assistant firmware -- MQTT with HA auto-discovery, select entity for speed control |
 
-```javascript
-import BleManager from 'react-native-ble-manager';
-
-// Scan for devices
-BleManager.scan([], 5, true).then(() => {
-  console.log('Scanning for PoolPump-ESP32...');
-});
-
-// Connect and send WiFi credentials
-BleManager.connect(peripheralId).then(() => {
-  // Send WiFi SSID
-  const ssidData = Buffer.from("MyWiFiNetwork");
-  BleManager.write(peripheralId, '00FF', 'FF01', ssidData);
-  
-  // Send WiFi Password
-  const passData = Buffer.from("MyPassword123");
-  BleManager.write(peripheralId, '00FF', 'FF02', passData);
-});
-```
-
-### Flutter/Dart Example
-
-```dart
-import 'package:flutter_blue/flutter_blue.dart';
-
-// Find and connect to device
-FlutterBlue flutterBlue = FlutterBlue.instance;
-flutterBlue.scan().listen((scanResult) {
-  if (scanResult.device.name == 'PoolPump-ESP32') {
-    scanResult.device.connect();
-  }
-});
-
-// Write WiFi credentials
-await characteristic.write(utf8.encode('MyWiFiNetwork'));
-```
-
----
-
-## Future Improvements
-
-- 🔥 Heater control via second relay
-- 📡 OTA updates
-- 🌤️ Integration of weather forecasts
-- 🧠 Smart scheduling based on learning algorithms
-- 📱 Complete mobile app for iOS/Android
-- 🔔 Push notifications for system alerts
-- 📊 Historical data and analytics
-
----
-
-## Safety & Disclaimer
-
-Ensure your pump motor is compatible (PSC motor only). Follow all electrical safety standards. Refer to the inverter manual for wiring and setup instructions:contentReference[oaicite:0]{index=0}.
-
----
+Both use the same LilyGO T-Relay hardware and relay-to-inverter mapping but delegate scheduling to external systems (Matter controller or HA automations) instead of running it on-device.
 
 ## License
 
